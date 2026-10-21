@@ -71,10 +71,12 @@ class NowWidget : NimbusWidget() {
 }
 
 class ForecastWidget : NimbusWidget() {
+    // Android accepts at most 16 sizes per widget (MAX_SIZES); narrow widgets only get the short layouts.
     override val sizeMode: SizeMode = SizeMode.Responsive(
-        listOf(180.dp, 250.dp, 320.dp).flatMap { width ->
-            listOf(110.dp, 130.dp, 175.dp, 245.dp, 270.dp, 300.dp).map { height -> DpSize(width, height) }
-        }.toSet(),
+        setOf(DpSize(180.dp, 110.dp), DpSize(180.dp, 175.dp)) +
+            listOf(250.dp, 320.dp).flatMap { width ->
+                listOf(110.dp, 130.dp, 175.dp, 245.dp, 270.dp, 300.dp).map { height -> DpSize(width, height) }
+            },
     )
 
     @Composable
@@ -125,6 +127,9 @@ class RefreshAction : ActionCallback {
         context.container.refresher.refreshFromWidget()
     }
 }
+
+/** The most sizes one widget may declare: RemoteViews refuses more and the launcher shows an error. */
+const val MAX_SIZES = 16
 
 object WidgetUpdater {
     private const val TAG = "WidgetUpdater"

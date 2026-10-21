@@ -139,7 +139,7 @@ fun NowWidgetContent(model: WidgetModel) {
     when {
         size.height < 100.dp && size.width >= 200.dp -> WidgetFrame(model, vertical = 8.dp) { NowWide(model) }
         size.height < 100.dp -> WidgetFrame(model, horizontal = 10.dp, vertical = 8.dp) { NowCompact(model) }
-        else -> WidgetFrame(model) { NowTall(model, wide = size.width >= 200.dp, roomy = size.height >= 180.dp) }
+        else -> WidgetFrame(model, vertical = 10.dp) { NowTall(model, wide = size.width >= 200.dp, roomy = size.height >= 180.dp) }
     }
 }
 
@@ -177,13 +177,13 @@ private fun NowTall(model: WidgetModel, wide: Boolean, roomy: Boolean) {
     Column(modifier = GlanceModifier.fillMaxSize()) {
         Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             LocationLabel(model, modifier = GlanceModifier.defaultWeight())
-            RefreshButton(model)
+            RefreshButton(model, if (roomy) 30.dp else 28.dp)
         }
         Spacer(GlanceModifier.defaultWeight())
         Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(text = model.temperature, style = text(if (wide) 50.sp else 40.sp, family = Light), maxLines = 1)
+            Text(text = model.temperature, style = text(if (wide) 50.sp else 38.sp, family = Light), maxLines = 1)
             Spacer(GlanceModifier.defaultWeight())
-            WeatherIcon(model.icon, if (wide) 50.dp else 40.dp, model.condition)
+            WeatherIcon(model.icon, if (wide) 50.dp else 38.dp, model.condition)
         }
         if (roomy) {
             Text(text = model.condition, style = text(13.sp, weight = FontWeight.Medium), maxLines = 1)
@@ -196,7 +196,7 @@ private fun NowTall(model: WidgetModel, wide: Boolean, roomy: Boolean) {
             }
         } else {
             // A 2x2 cell is short: just the condition, so the update time still fits.
-            Text(text = model.condition, style = text(12.sp, weight = FontWeight.Medium), maxLines = 1)
+            Text(text = model.condition, style = text(11.sp, weight = FontWeight.Medium), maxLines = 1)
         }
         StatusLine(model, 10.sp)
     }

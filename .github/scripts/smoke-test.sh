@@ -246,6 +246,9 @@ grep -E "Nimbus/(WidgetHost|WeatherRepository|WeatherRefresher|WidgetUpdater)" "
 if ! grep -q "Nimbus/WidgetHost: Pressed refresh" "$OUT/logcat-widgets.txt"; then
   echo "::error::Couldn't find the widgets' refresh button"
   widget_status=1
+elif grep -q "Nimbus/WidgetHost: No refresh button" "$OUT/logcat-widgets.txt"; then
+  echo "::error::A widget didn't render (no refresh button); the launcher would show an error"
+  widget_status=1
 elif ! grep -q "Nimbus/WeatherRepository: Updated" "$OUT/logcat-widgets.txt"; then
   echo "::error::Pressing the widget refresh button didn't fetch new weather"
   widget_status=1

@@ -13,6 +13,53 @@ mkdir -p "$OUT"
 
 adb_() { timeout 60 adb "$@"; }
 
+update_status=0
+widget_status=0
+
+# Collects logs, checks for crashes, writes thumbnails and exits.
+finish() {
+  local status=$1
+  cat "$OUT"/logcat-*.txt > "$OUT/logcat.txt" 2>/dev/null
+  grep -E "Nimbus/|AndroidRuntime|FATAL EXCEPTION|ANR in" "$OUT/logcat.txt" > "$OUT/app-log.txt" || true
+  echo "----- App log -----"
+  tail -n 80 "$OUT/app-log.txt"
+
+  if grep -E "FATAL EXCEPTION" -A 40 "$OUT/logcat.txt" | grep -q -E "Process: $PKG"; then
+    echo "::error::The app crashed during the smoke test"
+    grep -E "FATAL EXCEPTION" -A 40 "$OUT/logcat.txt"
+    status=1
+  fi
+  if grep -q -E "ANR in $PKG" "$OUT/logcat.txt"; then
+    echo "::error::The app stopped responding (ANR)"
+    grep -E "ANR in $PKG" -A 20 "$OUT/logcat.txt"
+    status=1
+  fi
+
+  # Small JPEG copies for quick review.
+  python3 - "$OUT" <<'PY' || true
+import os, sys
+from PIL import Image
+out = sys.argv[1]
+os.makedirs(os.path.join(out, "thumbs"), exist_ok=True)
+for name in sorted(os.listdir(out)):
+    if name.endswith(".png"):
+        image = Image.open(os.path.join(out, name)).convert("RGB")
+        image.thumbnail((432, 960))
+        image.save(os.path.join(out, "thumbs", name[:-4] + ".jpg"), quality=70)
+PY
+  exit "$status"
+}
+
+# Stops early, keeping what was captured, if the emulator itself has died.
+check_emulator() {
+  if ! timeout 10 adb get-state > /dev/null 2>&1; then
+    echo "::error::The emulator stopped responding ($1)"
+    adb_ logcat -d > "$OUT/logcat-last.txt" 2>/dev/null
+    finish 1
+  fi
+  echo "Emulator alive: $1"
+}
+
 # launch <package> [action]
 launch() {
   if [ -n "${2:-}" ]; then
@@ -62,6 +109,7 @@ walk() {
   launch "$package"
   for _ in 1 2 3; do adb_ emu geo fix -74.0060 40.7128 > /dev/null 2>&1; sleep 2; done
   wait_for_forecast "$package"
+  check_emulator "forecast loaded in $package"
 
   if [ -n "$capture" ]; then
     snap 01-home 4
@@ -74,6 +122,7 @@ walk() {
     for _ in 1 2 3; do swipe_up; sleep 1; done
   fi
 
+  check_emulator "home screen of $package"
   launch "$package" OPEN_SETTINGS
   if [ -n "$capture" ]; then snap 07-settings 3; swipe_up; snap 08-settings-more; else sleep 3; fi
 
@@ -109,6 +158,11 @@ update_to_latest_release() {
     return 0
   fi
 
+  if [ "$(adb_ shell getprop ro.build.version.sdk | tr -d '\r')" -lt 31 ]; then
+    echo "::notice::Prompt-free self-updates need Android 12+; skipping the update test on this emulator."
+    return 0
+  fi
+
   want="${tag#v}"
   adb_ shell appops set "$PKG" REQUEST_INSTALL_PACKAGES allow
   adb_ logcat -c
@@ -132,6 +186,11 @@ update_to_latest_release() {
 }
 
 adb_ wait-for-device
+if [ "${IDLE_SECONDS:-0}" -gt 0 ]; then
+  echo "Idling ${IDLE_SECONDS}s before installing anything…"
+  sleep "$IDLE_SECONDS"
+  check_emulator "idle after boot"
+fi
 adb_ shell settings put secure location_mode 3 > /dev/null 2>&1 || true
 adb_ shell cmd location set-location-enabled true > /dev/null 2>&1 || true
 for _ in 1 2 3; do adb_ emu geo fix -74.0060 40.7128 > /dev/null 2>&1; sleep 1; done
@@ -139,6 +198,7 @@ for _ in 1 2 3; do adb_ emu geo fix -74.0060 40.7128 > /dev/null 2>&1; sleep 1; 
 echo "::group::Release build"
 adb_ install -r -g "$APK_DIR/release/app-release.apk"
 walk "$PKG"
+check_emulator "release build walk"
 adb_ logcat -d > "$OUT/logcat-release.txt"
 echo "::endgroup::"
 
@@ -150,6 +210,7 @@ adb_ shell am start -W -n "$DEBUG_PKG/$PKG.WidgetPreviewActivity" > /dev/null
 snap 11-widgets 6
 swipe_up
 snap 12-widgets-more
+check_emulator "debug build walk"
 adb_ logcat -d > "$OUT/logcat-debug.txt"
 echo "::endgroup::"
 
@@ -164,6 +225,7 @@ adb_ logcat -c
 adb_ shell am start -n "$DEBUG_PKG/$PKG.WidgetHostActivity" -a "$PKG.debug.PRESS_REFRESH" > /dev/null
 snap 14-live-widgets-refreshing 1
 snap 15-live-widgets-refreshed 10
+check_emulator "live widgets"
 adb_ logcat -d > "$OUT/logcat-widgets.txt"
 grep -E "Nimbus/(WidgetHost|WeatherRepository|WeatherRefresher|WidgetUpdater)" "$OUT/logcat-widgets.txt" || true
 if ! grep -q "Nimbus/WidgetHost: Pressed refresh" "$OUT/logcat-widgets.txt"; then
@@ -180,38 +242,9 @@ update_to_latest_release
 update_status=$?
 echo "::endgroup::"
 
-cat "$OUT"/logcat-*.txt > "$OUT/logcat.txt"
-grep -E "Nimbus/|AndroidRuntime|FATAL EXCEPTION|ANR in" "$OUT/logcat.txt" > "$OUT/app-log.txt" || true
-echo "----- App log -----"
-tail -n 80 "$OUT/app-log.txt"
-
 status=$((update_status || widget_status))
-if grep -E "FATAL EXCEPTION" -A 40 "$OUT/logcat.txt" | grep -q -E "Process: $PKG"; then
-  echo "::error::The app crashed during the smoke test"
-  grep -E "FATAL EXCEPTION" -A 40 "$OUT/logcat.txt"
-  status=1
-fi
-if grep -q -E "ANR in $PKG" "$OUT/logcat.txt"; then
-  echo "::error::The app stopped responding (ANR)"
-  grep -E "ANR in $PKG" -A 20 "$OUT/logcat.txt"
-  status=1
-fi
 if ! grep -q "Nimbus/WeatherRepository: Updated" "$OUT/logcat-release.txt"; then
   echo "::error::The release build never loaded a forecast"
   status=1
 fi
-
-# Small JPEG copies for quick review.
-python3 - "$OUT" <<'PY' || true
-import os, sys
-from PIL import Image
-out = sys.argv[1]
-os.makedirs(os.path.join(out, "thumbs"), exist_ok=True)
-for name in sorted(os.listdir(out)):
-    if name.endswith(".png"):
-        image = Image.open(os.path.join(out, name)).convert("RGB")
-        image.thumbnail((432, 960))
-        image.save(os.path.join(out, "thumbs", name[:-4] + ".jpg"), quality=70)
-PY
-
-exit $status
+finish "$status"

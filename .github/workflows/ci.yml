@@ -74,12 +74,29 @@ jobs:
           retention-days: 7
 
   smoke-test:
-    name: Emulator smoke test
+    name: Emulator smoke test (${{ matrix.name }})
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
       contents: write
+    # Temporary matrix to find an emulator setup that stays up on the hosted runners.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api34-no-vulkan
+            api-level: 34
+            target: google_apis
+            extra-options: -feature -Vulkan
+          - name: api34-aosp
+            api-level: 34
+            target: default
+            extra-options: ""
+          - name: api31
+            api-level: 31
+            target: google_apis
+            extra-options: ""
     steps:
       - uses: actions/checkout@v4
 
@@ -101,21 +118,22 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         env:
           GH_TOKEN: ${{ github.token }}
+          IDLE_SECONDS: 90
         with:
-          api-level: 34
-          target: google_apis
+          api-level: ${{ matrix.api-level }}
+          target: ${{ matrix.target }}
           arch: x86_64
           profile: pixel_6
           # The software-rendered emulator stalls on continuous animation; with animations off the
           # app's reduce-motion path draws the sky as a still frame.
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot ${{ matrix.extra-options }}
           script: bash .github/scripts/smoke-test.sh apks smoke
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: smoke-test-screenshots
+          name: smoke-test-screenshots-${{ matrix.name }}
           path: smoke/
           retention-days: 14
 
@@ -130,9 +148,9 @@ jobs:
           cp smoke/thumbs/*.jpg "$tmp"/ 2>/dev/null || true
           cp smoke/app-log.txt "$tmp"/ 2>/dev/null || true
           cd "$tmp"
-          git init -q -b ci-screenshots
+          git init -q -b "ci-screenshots-${{ matrix.name }}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -q -m "Smoke test screenshots for $GITHUB_SHA"
-          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ci-screenshots
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "ci-screenshots-${{ matrix.name }}"

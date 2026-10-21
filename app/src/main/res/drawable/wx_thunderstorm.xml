@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated weather icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <path android:pathData="M13,26A9,9 0,1 1,31,26A9,9 0,1 1,13,26ZM21,17A12,12 0,1 1,45,17A12,12 0,1 1,21,17ZM35.5,25A8.5,8.5 0,1 1,52.5,25A8.5,8.5 0,1 1,35.5,25ZM18.75,23.5H46.75A5.75,5.75 0,0 1,52.5,29.25V29.25A5.75,5.75 0,0 1,46.75,35H18.75A5.75,5.75 0,0 1,13,29.25V29.25A5.75,5.75 0,0 1,18.75,23.5Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="33" android:startY="5" android:endX="33" android:endY="35">
+                <item android:offset="0" android:color="#9CA8B6"/>
+                <item android:offset="1" android:color="#5E6A79"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M20,42L17.8,49M47,43L44.8,50"
+        android:strokeColor="#5BC8FF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+    <path android:pathData="M34,36L25,49L31.5,49L27.5,60L40,44L33.5,44L38,36Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="32" android:startY="36" android:endX="32" android:endY="60">
+                <item android:offset="0" android:color="#FFE066"/>
+                <item android:offset="1" android:color="#FF9F0A"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

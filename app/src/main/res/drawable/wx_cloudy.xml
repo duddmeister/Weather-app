@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated weather icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <path android:pathData="M12,37A9,9 0,1 1,30,37A9,9 0,1 1,12,37ZM20,28A12,12 0,1 1,44,28A12,12 0,1 1,20,28ZM34.5,36A8.5,8.5 0,1 1,51.5,36A8.5,8.5 0,1 1,34.5,36ZM17.75,34.5H45.75A5.75,5.75 0,0 1,51.5,40.25V40.25A5.75,5.75 0,0 1,45.75,46H17.75A5.75,5.75 0,0 1,12,40.25V40.25A5.75,5.75 0,0 1,17.75,34.5Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="32" android:startY="16" android:endX="32" android:endY="46">
+                <item android:offset="0" android:color="#FFFFFF"/>
+                <item android:offset="1" android:color="#D3DEEA"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

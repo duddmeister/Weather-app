@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated weather icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <path android:pathData="M13,28A9,9 0,1 1,31,28A9,9 0,1 1,13,28ZM21,19A12,12 0,1 1,45,19A12,12 0,1 1,21,19ZM35.5,27A8.5,8.5 0,1 1,52.5,27A8.5,8.5 0,1 1,35.5,27ZM18.75,25.5H46.75A5.75,5.75 0,0 1,52.5,31.25V31.25A5.75,5.75 0,0 1,46.75,37H18.75A5.75,5.75 0,0 1,13,31.25V31.25A5.75,5.75 0,0 1,18.75,25.5Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="33" android:startY="7" android:endX="33" android:endY="37">
+                <item android:offset="0" android:color="#EEF2F6"/>
+                <item android:offset="1" android:color="#B7C3D0"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M22,43.4L22,48.6M24.25,44.7L19.75,47.3M24.25,47.3L19.75,44.7M32,48.4L32,53.6M34.25,49.7L29.75,52.3M34.25,52.3L29.75,49.7M42,43.4L42,48.6M44.25,44.7L39.75,47.3M44.25,47.3L39.75,44.7M27,54.4L27,59.6M29.25,55.7L24.75,58.3M29.25,58.3L24.75,55.7M38,55.4L38,60.6M40.25,56.7L35.75,59.3M40.25,59.3L35.75,56.7"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+</vector>

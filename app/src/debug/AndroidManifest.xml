@@ -8,5 +8,11 @@
             android:exported="true"
             android:label="Widget preview"
             android:theme="@style/Theme.Nimbus" />
+
+        <!-- Debug-only: saves the visible screen when CI asks (see SnapshotProvider). -->
+        <provider
+            android:name=".SnapshotProvider"
+            android:authorities="${applicationId}.snapshots"
+            android:exported="false" />
     </application>
 </manifest>

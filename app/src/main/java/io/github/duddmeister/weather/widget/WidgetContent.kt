@@ -195,12 +195,8 @@ private fun NowTall(model: WidgetModel, wide: Boolean, roomy: Boolean) {
                 )
             }
         } else {
-            // A 2x2 cell is short: condition and high/low share a line so the update time still fits.
-            Text(
-                text = listOf(model.condition, model.highLow).filter { it.isNotBlank() }.joinToString("  ·  "),
-                style = text(11.sp, weight = FontWeight.Medium),
-                maxLines = 1,
-            )
+            // A 2x2 cell is short: just the condition, so the update time still fits.
+            Text(text = model.condition, style = text(12.sp, weight = FontWeight.Medium), maxLines = 1)
         }
         StatusLine(model, 10.sp)
     }
@@ -214,20 +210,23 @@ fun ForecastWidgetContent(model: WidgetModel) {
     WidgetFrame(model) {
         Column(modifier = GlanceModifier.fillMaxSize()) {
             ForecastHeader(model)
-            if (model.hasData) {
+            if (model.hasData && size.height >= 130.dp) {
                 Spacer(GlanceModifier.height(10.dp))
                 val hourCount = when {
                     size.width >= 320.dp -> 7
                     size.width >= 250.dp -> 6
                     else -> 4
                 }
-                HourlyRow(model.hours.take(hourCount))
-                if (size.height >= 200.dp) {
+                HourlyRow(model.hours.take(hourCount), compact = size.height < 175.dp)
+                // Only as many days as fit whole (header and hours take ~170dp, each day ~26dp).
+                val dayCount = when {
+                    size.height >= 300.dp -> 5
+                    size.height >= 270.dp -> 4
+                    size.height >= 245.dp -> 3
+                    else -> 0
+                }
+                if (dayCount > 0) {
                     Spacer(GlanceModifier.height(10.dp))
-                    val dayCount = when {
-                        size.height >= 280.dp -> 5
-                        else -> 3
-                    }
                     DailyRows(model.days.take(dayCount), rangeWidth = if (size.width >= 320.dp) 90.dp else 60.dp)
                 }
             }
@@ -312,23 +311,29 @@ private fun RangeBar(start: Float, end: Float, width: Dp) {
 @Composable
 fun ClockWidgetContent(model: WidgetModel) {
     val size = LocalSize.current
-    val tall = size.height >= 170.dp
+    // Short: compact clock. Medium: a bigger clock. Tall: room for the next hours too.
+    val tall = size.height >= 180.dp
+    val medium = !tall && size.height >= 135.dp
     val wide = size.width >= 300.dp
     WidgetFrame(model, horizontal = 16.dp, vertical = 10.dp) {
         Column(modifier = GlanceModifier.fillMaxSize()) {
             Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                 ClockFace(
                     model = model,
-                    timeSize = if (tall) 52.sp else 42.sp,
+                    timeSize = when {
+                        medium -> 56.sp
+                        tall -> 52.sp
+                        else -> 42.sp
+                    },
                     dateSize = 13.sp,
                     longDate = wide,
                     modifier = GlanceModifier.defaultWeight(),
                 )
                 Column(horizontalAlignment = Alignment.End) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        WeatherIcon(model.icon, if (tall) 34.dp else 30.dp, model.condition)
+                        WeatherIcon(model.icon, if (tall || medium) 36.dp else 30.dp, model.condition)
                         Spacer(GlanceModifier.width(4.dp))
-                        Text(text = model.temperature, style = text(if (tall) 30.sp else 26.sp, family = Light), maxLines = 1)
+                        Text(text = model.temperature, style = text(if (tall || medium) 30.sp else 26.sp, family = Light), maxLines = 1)
                     }
                     Text(text = model.condition, style = text(12.sp, WhiteSecondary, align = TextAlign.End), maxLines = 1)
                     if (model.highLow.isNotBlank()) {

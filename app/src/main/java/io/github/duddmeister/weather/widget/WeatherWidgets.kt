@@ -72,7 +72,9 @@ class NowWidget : NimbusWidget() {
 
 class ForecastWidget : NimbusWidget() {
     override val sizeMode: SizeMode = SizeMode.Responsive(
-        setOf(DpSize(180.dp, 110.dp), DpSize(250.dp, 110.dp), DpSize(250.dp, 200.dp), DpSize(250.dp, 280.dp), DpSize(320.dp, 280.dp)),
+        listOf(180.dp, 250.dp, 320.dp).flatMap { width ->
+            listOf(110.dp, 130.dp, 175.dp, 245.dp, 270.dp, 300.dp).map { height -> DpSize(width, height) }
+        }.toSet(),
     )
 
     @Composable
@@ -81,7 +83,9 @@ class ForecastWidget : NimbusWidget() {
 
 class ClockWidget : NimbusWidget() {
     override val sizeMode: SizeMode = SizeMode.Responsive(
-        setOf(DpSize(180.dp, 100.dp), DpSize(250.dp, 100.dp), DpSize(250.dp, 170.dp), DpSize(300.dp, 100.dp), DpSize(300.dp, 170.dp)),
+        listOf(180.dp, 250.dp, 300.dp).flatMap { width ->
+            listOf(100.dp, 135.dp, 180.dp).map { height -> DpSize(width, height) }
+        }.toSet(),
     )
 
     @Composable

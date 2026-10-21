@@ -9,54 +9,35 @@ OUT="$2"
 PKG=io.github.duddmeister.weather
 mkdir -p "$OUT"
 
+adb_() { timeout 60 adb "$@"; }
+
 shot() {
   sleep "${2:-2}"
-  adb exec-out screencap -p > "$OUT/$1.png"
-  echo "Captured $1"
+  timeout 30 adb exec-out screencap -p > "$OUT/$1.png" && echo "Captured $1"
 }
 
-# Taps the first on-screen element whose content description or text matches $1
-# (or whose class matches, when $1 is "class:<name>").
-tap() {
-  adb shell uiautomator dump /sdcard/ui.xml > /dev/null 2>&1
-  adb pull /sdcard/ui.xml "$OUT/ui.xml" > /dev/null 2>&1
-  local bounds
-  bounds=$(python3 - "$OUT/ui.xml" "$1" <<'PY'
-import re, sys, xml.etree.ElementTree as ET
-root = ET.parse(sys.argv[1]).getroot()
-want = sys.argv[2]
-for node in root.iter("node"):
-    if want.startswith("class:"):
-        hit = node.get("class") == want[len("class:"):]
-    else:
-        hit = want in (node.get("content-desc"), node.get("text"))
-    if hit:
-        x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.get("bounds")))
-        print((x1 + x2) // 2, (y1 + y2) // 2)
-        break
-PY
-)
-  if [ -z "$bounds" ]; then
-    echo "Couldn't find '$1' on screen"
-    return 1
-  fi
-  adb shell input tap $bounds
+open_screen() {
+  adb_ shell am start -n "$PKG/.MainActivity" -a "$PKG.action.$1" > /dev/null
 }
 
-adb wait-for-device
-adb shell settings put secure location_mode 3 > /dev/null 2>&1 || true
-adb shell cmd location set-location-enabled true > /dev/null 2>&1 || true
-for _ in 1 2 3; do adb emu geo fix -74.0060 40.7128 > /dev/null 2>&1; sleep 1; done
+swipe_up() {
+  adb_ shell input swipe 540 1900 540 600 500
+}
 
-adb install -r -g "$APK_DIR/release/app-release.apk"
-adb logcat -c
+adb_ wait-for-device
+adb_ shell settings put secure location_mode 3 > /dev/null 2>&1 || true
+adb_ shell cmd location set-location-enabled true > /dev/null 2>&1 || true
+for _ in 1 2 3; do adb_ emu geo fix -74.0060 40.7128 > /dev/null 2>&1; sleep 1; done
 
-adb shell am start -W -n "$PKG/.MainActivity"
-for _ in 1 2 3; do adb emu geo fix -74.0060 40.7128 > /dev/null 2>&1; sleep 2; done
+adb_ install -r -g "$APK_DIR/release/app-release.apk"
+adb_ logcat -c
+
+adb_ shell am start -W -n "$PKG/.MainActivity"
+for _ in 1 2 3; do adb_ emu geo fix -74.0060 40.7128 > /dev/null 2>&1; sleep 2; done
 
 echo "Waiting for the first forecast…"
 for _ in $(seq 1 60); do
-  if adb logcat -d | grep -q "Nimbus/WeatherRepository: Updated"; then
+  if adb_ logcat -d | grep -q "Nimbus/WeatherRepository: Updated"; then
     echo "Forecast loaded."
     break
   fi
@@ -65,30 +46,33 @@ done
 shot 01-home 4
 
 for i in 2 3 4 5 6; do
-  adb shell input swipe 540 1900 540 600 500
+  swipe_up
   shot "0$i-scroll"
 done
 
-tap "Settings" && shot 07-settings 2
-adb shell input keyevent KEYCODE_BACK
-sleep 1
-tap "Places" && shot 08-places 2
-tap "class:android.widget.EditText" && adb shell input text "Paris"
-shot 09-search 4
-adb shell input keyevent KEYCODE_BACK
-adb shell input keyevent KEYCODE_BACK
+open_screen OPEN_SETTINGS
+shot 07-settings 3
+swipe_up
+shot 08-settings-more 2
+
+open_screen OPEN_PLACES
+shot 09-places 3
+adb_ shell input text "Paris"
+shot 10-search 5
+adb_ shell input keyevent KEYCODE_BACK
+adb_ shell input keyevent KEYCODE_BACK
 sleep 1
 
 # Widget layouts rendered through Glance by the debug build's preview screen.
 if [ -f "$APK_DIR/debug/app-debug.apk" ]; then
-  adb install -r -g "$APK_DIR/debug/app-debug.apk"
-  adb shell am start -W -n "$PKG.debug/$PKG.WidgetPreviewActivity"
-  shot 10-widgets 6
-  adb shell input swipe 540 1900 540 600 500
-  shot 11-widgets-more 2
+  adb_ install -r -g "$APK_DIR/debug/app-debug.apk"
+  adb_ shell am start -W -n "$PKG.debug/$PKG.WidgetPreviewActivity"
+  shot 11-widgets 6
+  swipe_up
+  shot 12-widgets-more 2
 fi
 
-adb logcat -d > "$OUT/logcat.txt"
+adb_ logcat -d > "$OUT/logcat.txt"
 grep -E "Nimbus/|AndroidRuntime|FATAL EXCEPTION|ANR in" "$OUT/logcat.txt" > "$OUT/app-log.txt" || true
 echo "----- App log -----"
 tail -n 80 "$OUT/app-log.txt"
@@ -103,9 +87,6 @@ if grep -q -E "ANR in $PKG" "$OUT/logcat.txt"; then
   echo "::error::The app stopped responding (ANR)"
   grep -E "ANR in $PKG" -A 20 "$OUT/logcat.txt"
   status=1
-fi
-if ! adb shell pidof "$PKG" > /dev/null; then
-  echo "::warning::App process isn't running at the end of the test"
 fi
 
 # Small JPEG copies for quick review.

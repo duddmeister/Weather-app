@@ -19,6 +19,7 @@ import io.github.duddmeister.weather.core.AppLog
 import io.github.duddmeister.weather.ui.LaunchRequest
 import io.github.duddmeister.weather.ui.MainViewModel
 import io.github.duddmeister.weather.ui.NimbusRoot
+import io.github.duddmeister.weather.ui.Screen
 import io.github.duddmeister.weather.ui.theme.NimbusTheme
 import io.github.duddmeister.weather.update.UpdateManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -74,12 +75,19 @@ class MainActivity : ComponentActivity() {
         val locationId = intent.getStringExtra(EXTRA_LOCATION_ID)
         val showUpdate = intent.action == UpdateManager.ACTION_SHOW_UPDATE
         val installUpdate = intent.action == UpdateManager.ACTION_INSTALL_UPDATE
-        if (locationId != null || showUpdate || installUpdate) {
-            launchRequests.value = LaunchRequest(locationId, showUpdate, installUpdate)
+        val screen = when (intent.action) {
+            ACTION_OPEN_PLACES -> Screen.Places
+            ACTION_OPEN_SETTINGS -> Screen.Settings
+            else -> null
+        }
+        if (locationId != null || showUpdate || installUpdate || screen != null) {
+            launchRequests.value = LaunchRequest(locationId, showUpdate, installUpdate, screen)
         }
     }
 
     companion object {
         const val EXTRA_LOCATION_ID = "io.github.duddmeister.weather.extra.LOCATION_ID"
+        const val ACTION_OPEN_PLACES = "io.github.duddmeister.weather.action.OPEN_PLACES"
+        const val ACTION_OPEN_SETTINGS = "io.github.duddmeister.weather.action.OPEN_SETTINGS"
     }
 }

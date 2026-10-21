@@ -2,8 +2,12 @@ package io.github.duddmeister.weather
 
 import android.app.Application
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.util.Log
+import androidx.core.content.pm.ShortcutInfoCompat
+import androidx.core.content.pm.ShortcutManagerCompat
+import androidx.core.graphics.drawable.IconCompat
 import io.github.duddmeister.weather.core.AppLog
 import io.github.duddmeister.weather.core.HttpFetcher
 import io.github.duddmeister.weather.core.createHttpClient
@@ -83,6 +87,7 @@ class AppContainer(private val app: Application) {
     )
 
     fun start() {
+        publishShortcuts()
         // Keep the periodic refresh in step with the setting.
         appScope.launch {
             settingsStore.settings.map { it.refreshIntervalMinutes }.distinctUntilChanged().collect { minutes ->
@@ -98,5 +103,32 @@ class AppContainer(private val app: Application) {
                 .debounce(750)
                 .collect { WidgetUpdater.updateAll(app) }
         }
+    }
+
+    /** Long-press shortcuts on the launcher icon. Only published when missing (updates are rate limited). */
+    private fun publishShortcuts() {
+        runCatching {
+            val existing = ShortcutManagerCompat.getDynamicShortcuts(app).map { it.id }.toSet()
+            if (existing.containsAll(listOf(SHORTCUT_PLACES, SHORTCUT_SETTINGS))) return
+            fun shortcut(id: String, action: String, short: Int, long: Int, icon: Int) =
+                ShortcutInfoCompat.Builder(app, id)
+                    .setShortLabel(app.getString(short))
+                    .setLongLabel(app.getString(long))
+                    .setIcon(IconCompat.createWithResource(app, icon))
+                    .setIntent(Intent(action).setClass(app, MainActivity::class.java))
+                    .build()
+            ShortcutManagerCompat.setDynamicShortcuts(
+                app,
+                listOf(
+                    shortcut(SHORTCUT_PLACES, MainActivity.ACTION_OPEN_PLACES, R.string.shortcut_places_short, R.string.shortcut_places_long, R.drawable.ic_shortcut_search),
+                    shortcut(SHORTCUT_SETTINGS, MainActivity.ACTION_OPEN_SETTINGS, R.string.shortcut_settings_short, R.string.shortcut_settings_long, R.drawable.ic_shortcut_settings),
+                ),
+            )
+        }.onFailure { AppLog.w("AppContainer", "Couldn't publish shortcuts", it) }
+    }
+
+    private companion object {
+        const val SHORTCUT_PLACES = "places"
+        const val SHORTCUT_SETTINGS = "settings"
     }
 }

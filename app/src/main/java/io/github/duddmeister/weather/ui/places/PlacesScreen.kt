@@ -42,6 +42,8 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -49,6 +51,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -74,7 +78,8 @@ fun PlacesScreen(
     state: MainUiState,
     searchState: SearchState,
     nowMillis: Long,
-    startWithSearch: Boolean,
+    /** Put the cursor in the search field right away (onboarding, launcher shortcut). */
+    focusSearch: Boolean,
     onBack: () -> Unit,
     onSearch: (String) -> Unit,
     onAdd: (GeocodingResult) -> Unit,
@@ -86,6 +91,10 @@ fun PlacesScreen(
     var query by rememberSaveable { mutableStateOf("") }
     var editing by rememberSaveable { mutableStateOf(false) }
     val focus = LocalFocusManager.current
+    val searchFocus = remember { FocusRequester() }
+    LaunchedEffect(focusSearch) {
+        if (focusSearch) searchFocus.requestFocus()
+    }
     val use24h = rememberUse24h(state.settings)
     val currentPage = state.pages.firstOrNull { it.location.isCurrent }
     val savedPages = state.pages.filterNot { it.location.isCurrent }
@@ -104,7 +113,7 @@ fun PlacesScreen(
                 query = it
                 onSearch(it)
             },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).focusRequester(searchFocus),
             placeholder = { Text("Search for a city or town") },
             leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
             trailingIcon = {
@@ -151,7 +160,7 @@ fun PlacesScreen(
                 item(key = "current") {
                     CurrentLocationCard(state, currentPage, nowMillis, use24h, onSelect, onUseMyLocation)
                 }
-                if (savedPages.isEmpty() && startWithSearch) {
+                if (savedPages.isEmpty() && focusSearch) {
                     item(key = "hint") {
                         Text(
                             "Search above to add cities. Swipe between them on the main screen.",

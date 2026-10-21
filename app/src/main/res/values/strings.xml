@@ -5,4 +5,8 @@
     <string name="widget_now_description">Temperature and conditions right now, with a one-tap refresh button</string>
     <string name="widget_forecast_label">Weather forecast</string>
     <string name="widget_forecast_description">Current conditions plus the hourly and daily forecast, with a one-tap refresh button</string>
+    <string name="shortcut_places_short">Search places</string>
+    <string name="shortcut_places_long">Search for a place</string>
+    <string name="shortcut_settings_short">Settings</string>
+    <string name="shortcut_settings_long">Nimbus settings</string>
 </resources>

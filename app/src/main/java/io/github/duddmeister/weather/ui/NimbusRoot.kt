@@ -55,6 +55,8 @@ data class LaunchRequest(
     val locationId: String? = null,
     val showUpdate: Boolean = false,
     val installUpdate: Boolean = false,
+    /** Opened from a launcher shortcut. */
+    val screen: Screen? = null,
 )
 
 @Composable
@@ -121,6 +123,10 @@ fun NimbusRoot(vm: MainViewModel, launchRequest: LaunchRequest?, onLaunchRequest
             showUpdate = true
             if (request.installUpdate) vm.startUpdate()
         }
+        request.screen?.let { target ->
+            placesFromOnboarding = target == Screen.Places
+            screen = target
+        }
         onLaunchRequestHandled()
     }
     LaunchedEffect(pendingLocationId, state.pages, screen) {
@@ -175,7 +181,7 @@ fun NimbusRoot(vm: MainViewModel, launchRequest: LaunchRequest?, onLaunchRequest
                             state = state,
                             searchState = searchState,
                             nowMillis = nowMillis,
-                            startWithSearch = placesFromOnboarding,
+                            focusSearch = placesFromOnboarding,
                             onBack = { screen = Screen.Home },
                             onSearch = vm::search,
                             onAdd = { result ->

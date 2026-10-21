@@ -26,10 +26,13 @@ swipe_up() {
   adb_ shell input swipe 540 1900 540 600 500
 }
 
+# wait_for_forecast <package>: waits until that app logs its first successful fetch.
 wait_for_forecast() {
+  local pid
+  pid=$(adb_ shell pidof -s "$1" | tr -d '\r')
   echo "Waiting for the first forecast…"
   for _ in $(seq 1 60); do
-    if adb_ logcat -d | grep -q "Nimbus/WeatherRepository: Updated"; then
+    if adb_ logcat -d ${pid:+--pid="$pid"} | grep -q "Nimbus/WeatherRepository: Updated"; then
       echo "Forecast loaded."
       return 0
     fi
@@ -58,7 +61,7 @@ walk() {
   adb_ logcat -c
   launch "$package"
   for _ in 1 2 3; do adb_ emu geo fix -74.0060 40.7128 > /dev/null 2>&1; sleep 2; done
-  wait_for_forecast
+  wait_for_forecast "$package"
 
   if [ -n "$capture" ]; then
     snap 01-home 4

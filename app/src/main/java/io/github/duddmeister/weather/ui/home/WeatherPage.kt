@@ -1,6 +1,14 @@
 package io.github.duddmeister.weather.ui.home
 
 import android.text.format.DateFormat
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,14 +32,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.NearMe
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -54,6 +58,9 @@ import io.github.duddmeister.weather.model.TimeFormat
 import io.github.duddmeister.weather.model.Units
 import io.github.duddmeister.weather.ui.LocationPage
 import io.github.duddmeister.weather.ui.components.GlassCard
+import io.github.duddmeister.weather.ui.components.PulsingDots
+import io.github.duddmeister.weather.ui.components.Reveal
+import io.github.duddmeister.weather.ui.components.rememberRevealState
 import io.github.duddmeister.weather.ui.theme.SkyText
 import java.time.ZoneId
 
@@ -86,22 +93,14 @@ fun WeatherPage(
     }
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 64.dp
     val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 88.dp
-    val pullState = rememberPullToRefreshState()
+    val reveal = rememberRevealState(page.location.id)
 
-    PullToRefreshBox(
-        isRefreshing = page.refreshing,
+    ElasticRefreshBox(
+        refreshing = page.refreshing,
+        error = page.error,
         onRefresh = onRefresh,
+        headerTop = topInset,
         modifier = Modifier.fillMaxSize(),
-        state = pullState,
-        indicator = {
-            PullToRefreshDefaults.Indicator(
-                state = pullState,
-                isRefreshing = page.refreshing,
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = topInset),
-                containerColor = Color(0xFF1E3A66),
-                color = Color.White,
-            )
-        },
     ) {
         LazyColumn(
             state = listState,
@@ -110,32 +109,40 @@ fun WeatherPage(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item(key = "hero") {
-                Hero(
-                    page = page,
-                    now = now,
-                    today = today,
-                    settings = settings,
-                    nowMillis = nowMillis,
-                    onRefresh = onRefresh,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 300.dp).fillParentMaxHeight(0.42f),
-                )
+                Reveal(reveal, "hero", 0, Modifier.animateItem()) {
+                    Hero(
+                        page = page,
+                        now = now,
+                        today = today,
+                        settings = settings,
+                        nowMillis = nowMillis,
+                        onRefresh = onRefresh,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 300.dp).fillParentMaxHeight(0.42f),
+                    )
+                }
             }
             if (snapshot == null || now == null) {
-                item(key = "empty") { EmptyCard(page, onRefresh) }
+                item(key = "empty") { Reveal(reveal, "empty", 1, Modifier.animateItem()) { EmptyCard(page, onRefresh) } }
                 return@LazyColumn
             }
+            var order = 1
             if (snapshot.alerts.isNotEmpty()) {
-                item(key = "alerts") { AlertsCard(snapshot, nowMillis, use24h) }
+                val o = order++
+                item(key = "alerts") { Reveal(reveal, "alerts", o, Modifier.animateItem()) { AlertsCard(snapshot, nowMillis, use24h) } }
             }
             if (nowcast != null && (nowcast.hasPrecipitation || now.condition.isPrecipitation)) {
-                item(key = "nowcast") { NowcastCard(nowcast, snapshot, use24h) }
+                val o = order++
+                item(key = "nowcast") { Reveal(reveal, "nowcast", o, Modifier.animateItem()) { NowcastCard(nowcast, snapshot, use24h) } }
             }
             if (summary.isNotBlank()) {
-                item(key = "summary") { SummaryCard(summary) }
+                val o = order++
+                item(key = "summary") { Reveal(reveal, "summary", o, Modifier.animateItem()) { SummaryCard(summary) } }
             }
-            item(key = "hourly") { HourlyCard(snapshot, now, nowMillis, settings, use24h) }
-            item(key = "daily") { DailyCard(snapshot, now, nowMillis, settings, use24h) }
-            detailRows(snapshot, now, nowMillis, settings, use24h, page.location)
+            val hourlyOrder = order++
+            item(key = "hourly") { Reveal(reveal, "hourly", hourlyOrder, Modifier.animateItem()) { HourlyCard(snapshot, now, nowMillis, settings, use24h) } }
+            val dailyOrder = order++
+            item(key = "daily") { Reveal(reveal, "daily", dailyOrder, Modifier.animateItem()) { DailyCard(snapshot, now, nowMillis, settings, use24h) } }
+            detailRows(snapshot, now, nowMillis, settings, use24h, page.location, reveal, order)
             item(key = "footer") { Footer(page, nowMillis, use24h) }
         }
     }
@@ -172,12 +179,24 @@ private fun Hero(
         }
         Spacer(Modifier.height(4.dp))
         FreshnessLine(page, nowMillis, onRefresh)
-        Text(
-            text = Units.formatTemperature(now?.temperature, units.temperature),
-            style = MaterialTheme.typography.displayLarge,
-            color = Color.White,
-            modifier = Modifier.padding(start = 24.dp),
-        )
+        AnimatedContent(
+            targetState = Units.formatTemperature(now?.temperature, units.temperature),
+            transitionSpec = {
+                // Digits roll up when it gets warmer and down when it gets colder.
+                val warmer = degrees(targetState) >= degrees(initialState)
+                (slideInVertically(tween(450)) { h -> if (warmer) h / 2 else -h / 2 } + fadeIn(tween(450))) togetherWith
+                    (slideOutVertically(tween(450)) { h -> if (warmer) -h / 2 else h / 2 } + fadeOut(tween(300))) using
+                    SizeTransform(clip = false)
+            },
+            label = "temperature",
+        ) { temperature ->
+            Text(
+                text = temperature,
+                style = MaterialTheme.typography.displayLarge,
+                color = Color.White,
+                modifier = Modifier.padding(start = 24.dp),
+            )
+        }
         if (now != null) {
             Text(now.condition.label(now.isDay), style = MaterialTheme.typography.titleLarge, color = Color.White)
             Spacer(Modifier.height(6.dp))
@@ -205,7 +224,7 @@ private fun FreshnessLine(page: LocationPage, nowMillis: Long, onRefresh: () -> 
     val age = snapshot?.let { nowMillis - it.fetchedAt }
     val stale = age != null && age > 60 * 60_000L
     val text = when {
-        page.refreshing -> "Updating…"
+        page.refreshing -> "Updating"
         snapshot == null -> page.error ?: "Loading…"
         page.error != null && age != null && age > 15 * 60_000L -> "Couldn't update · ${TimeText.relativeAge(nowMillis, snapshot.fetchedAt)}"
         else -> "Updated ${TimeText.relativeAge(nowMillis, snapshot.fetchedAt)}"
@@ -215,13 +234,15 @@ private fun FreshnessLine(page: LocationPage, nowMillis: Long, onRefresh: () -> 
         modifier = Modifier.clickable(enabled = !page.refreshing, onClick = onRefresh).padding(horizontal = 8.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (page.refreshing) {
-            CircularProgressIndicator(modifier = Modifier.size(11.dp), strokeWidth = 1.5.dp, color = SkyText.Secondary)
-        } else {
+        if (!page.refreshing) {
             Icon(Icons.Rounded.Refresh, contentDescription = "Refresh", tint = color, modifier = Modifier.size(13.dp))
+            Spacer(Modifier.width(5.dp))
         }
-        Spacer(Modifier.width(5.dp))
         Text(text, style = MaterialTheme.typography.labelMedium.copy(letterSpacing = MaterialTheme.typography.bodySmall.letterSpacing), color = color)
+        if (page.refreshing) {
+            Spacer(Modifier.width(6.dp))
+            PulsingDots(SkyText.Secondary, dotSize = 3.dp)
+        }
     }
 }
 
@@ -230,8 +251,8 @@ private fun EmptyCard(page: LocationPage, onRefresh: () -> Unit) {
     GlassCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             if (page.refreshing) {
-                CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
-                Spacer(Modifier.height(12.dp))
+                PulsingDots(Color.White, dotSize = 8.dp)
+                Spacer(Modifier.height(14.dp))
                 Text("Getting the forecast…", color = Color.White, style = MaterialTheme.typography.titleMedium)
             } else {
                 Icon(Icons.Rounded.CloudOff, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
@@ -276,3 +297,7 @@ private fun Footer(page: LocationPage, nowMillis: Long, use24h: Boolean) {
         )
     }
 }
+
+/** The number in a formatted temperature like "-3°", for deciding which way digits roll. */
+private fun degrees(text: String): Int =
+    Regex("[-−]?\\d+").find(text)?.value?.replace('−', '-')?.toIntOrNull() ?: 0

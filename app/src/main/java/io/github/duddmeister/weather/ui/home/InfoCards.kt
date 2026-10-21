@@ -46,6 +46,7 @@ import io.github.duddmeister.weather.model.WeatherAlert
 import io.github.duddmeister.weather.model.WeatherSnapshot
 import io.github.duddmeister.weather.ui.components.CardLabel
 import io.github.duddmeister.weather.ui.components.GlassCard
+import io.github.duddmeister.weather.ui.components.rememberAppearProgress
 import io.github.duddmeister.weather.ui.theme.SkyText
 import kotlin.math.min
 
@@ -116,6 +117,7 @@ fun NowcastCard(nowcast: Nowcast, snapshot: WeatherSnapshot, use24h: Boolean) {
         Text(nowcast.headline, style = MaterialTheme.typography.titleMedium, color = Color.White)
         Spacer(Modifier.height(12.dp))
         val bars = nowcast.bars
+        val grow by rememberAppearProgress(durationMillis = 900)
         Canvas(Modifier.fillMaxWidth().height(64.dp)) {
             val slot = size.width / bars.size
             val maxRate = 6f
@@ -131,8 +133,10 @@ fun NowcastCard(nowcast: Nowcast, snapshot: WeatherSnapshot, use24h: Boolean) {
                 )
             }
             bars.forEachIndexed { i, bar ->
+                // Bars rise left to right as the card comes in.
+                val rise = (grow * 1.5f - 0.5f * i / bars.size).coerceIn(0f, 1f)
                 val fraction = min(bar.mmPerHour.toFloat() / maxRate, 1f)
-                val height = if (bar.mmPerHour > 0.0) (size.height * fraction).coerceAtLeast(3.dp.toPx()) else 2.dp.toPx()
+                val height = (if (bar.mmPerHour > 0.0) (size.height * fraction).coerceAtLeast(3.dp.toPx()) else 2.dp.toPx()) * rise
                 val alpha = if (bar.mmPerHour > 0.0) 0.9f else 0.25f
                 drawRoundRect(
                     color = color.copy(alpha = alpha),

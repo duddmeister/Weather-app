@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The clock widget's date; the localised pattern is set in code. -->
+<TextClock xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/clock_date"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:fontFamily="sans-serif-medium"
+    android:format12Hour="EEE, MMM d"
+    android:format24Hour="EEE, d MMM"
+    android:maxLines="1"
+    android:textColor="#E6FFFFFF"
+    android:textSize="13sp" />

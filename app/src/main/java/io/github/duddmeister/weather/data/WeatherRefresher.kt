@@ -7,6 +7,7 @@ import io.github.duddmeister.weather.model.SavedLocation
 import io.github.duddmeister.weather.notify.WeatherNotifier
 import io.github.duddmeister.weather.widget.WidgetUpdater
 import io.github.duddmeister.weather.work.WorkScheduler
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 /** What the widgets need to know about the latest background refresh attempt. */
@@ -63,14 +65,21 @@ class WeatherRefresher(
      * fits within a broadcast; if it can't finish (offline), a refresh is queued for when the network returns.
      */
     suspend fun refreshFromWidget() {
+        // Another widget's button already started one; it refreshes every widget's place.
+        if (_widgetState.value.refreshing) return
         _widgetState.value = _widgetState.value.copy(refreshing = true)
-        WidgetUpdater.updateAll(context)
-        val ok = withTimeoutOrNull(WIDGET_TIMEOUT_MILLIS) { refreshBackgroundLocked(force = true) } ?: false
-        _widgetState.value = WidgetRefreshState(
-            refreshing = false,
-            lastFailureAt = if (ok) 0L else System.currentTimeMillis(),
-        )
-        WidgetUpdater.updateAll(context)
+        var ok = false
+        try {
+            WidgetUpdater.updateAll(context)
+            ok = withTimeoutOrNull(WIDGET_TIMEOUT_MILLIS) { refreshBackgroundLocked(force = true) } ?: false
+        } finally {
+            // Never leave widgets stuck on "Updating…".
+            _widgetState.value = WidgetRefreshState(
+                refreshing = false,
+                lastFailureAt = if (ok) 0L else System.currentTimeMillis(),
+            )
+            withContext(NonCancellable) { WidgetUpdater.updateAll(context) }
+        }
         if (!ok) WorkScheduler.refreshWhenOnline(context)
     }
 

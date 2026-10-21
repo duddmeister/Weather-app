@@ -1,6 +1,11 @@
 package io.github.duddmeister.weather.widget
 
+import android.app.PendingIntent
 import android.content.Intent
+import android.provider.AlarmClock
+import android.text.format.DateFormat
+import android.util.TypedValue
+import android.widget.RemoteViews
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
@@ -14,6 +19,7 @@ import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.action.clickable
+import androidx.glance.appwidget.AndroidRemoteViews
 import androidx.glance.appwidget.CircularProgressIndicator
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
@@ -41,6 +47,7 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import io.github.duddmeister.weather.MainActivity
 import io.github.duddmeister.weather.R
+import java.util.Locale
 
 private val White = ColorProvider(Color.White)
 private val WhiteSecondary = ColorProvider(Color.White.copy(alpha = 0.82f))
@@ -132,7 +139,7 @@ fun NowWidgetContent(model: WidgetModel) {
     when {
         size.height < 100.dp && size.width >= 200.dp -> WidgetFrame(model, vertical = 8.dp) { NowWide(model) }
         size.height < 100.dp -> WidgetFrame(model, horizontal = 10.dp, vertical = 8.dp) { NowCompact(model) }
-        else -> WidgetFrame(model) { NowTall(model, wide = size.width >= 200.dp) }
+        else -> WidgetFrame(model, vertical = 10.dp) { NowTall(model, wide = size.width >= 200.dp, roomy = size.height >= 180.dp) }
     }
 }
 
@@ -166,25 +173,30 @@ private fun NowWide(model: WidgetModel) {
 }
 
 @Composable
-private fun NowTall(model: WidgetModel, wide: Boolean) {
+private fun NowTall(model: WidgetModel, wide: Boolean, roomy: Boolean) {
     Column(modifier = GlanceModifier.fillMaxSize()) {
         Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             LocationLabel(model, modifier = GlanceModifier.defaultWeight())
-            RefreshButton(model)
+            RefreshButton(model, if (roomy) 30.dp else 28.dp)
         }
         Spacer(GlanceModifier.defaultWeight())
         Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(text = model.temperature, style = text(if (wide) 52.sp else 44.sp, family = Light), maxLines = 1)
+            Text(text = model.temperature, style = text(if (wide) 50.sp else 38.sp, family = Light), maxLines = 1)
             Spacer(GlanceModifier.defaultWeight())
-            WeatherIcon(model.icon, if (wide) 54.dp else 44.dp, model.condition)
+            WeatherIcon(model.icon, if (wide) 50.dp else 38.dp, model.condition)
         }
-        Text(text = model.condition, style = text(13.sp, weight = FontWeight.Medium), maxLines = 1)
-        if (model.highLow.isNotBlank()) {
-            Text(
-                text = if (wide && model.feelsLike != null) "${model.highLow}  ·  ${model.feelsLike}" else model.highLow,
-                style = text(11.sp, WhiteSecondary),
-                maxLines = 1,
-            )
+        if (roomy) {
+            Text(text = model.condition, style = text(13.sp, weight = FontWeight.Medium), maxLines = 1)
+            if (model.highLow.isNotBlank()) {
+                Text(
+                    text = if (wide && model.feelsLike != null) "${model.highLow}  ·  ${model.feelsLike}" else model.highLow,
+                    style = text(11.sp, WhiteSecondary),
+                    maxLines = 1,
+                )
+            }
+        } else {
+            // A 2x2 cell is short: just the condition, so the update time still fits.
+            Text(text = model.condition, style = text(11.sp, weight = FontWeight.Medium), maxLines = 1)
         }
         StatusLine(model, 10.sp)
     }
@@ -198,20 +210,23 @@ fun ForecastWidgetContent(model: WidgetModel) {
     WidgetFrame(model) {
         Column(modifier = GlanceModifier.fillMaxSize()) {
             ForecastHeader(model)
-            if (model.hasData) {
+            if (model.hasData && size.height >= 130.dp) {
                 Spacer(GlanceModifier.height(10.dp))
                 val hourCount = when {
                     size.width >= 320.dp -> 7
                     size.width >= 250.dp -> 6
                     else -> 4
                 }
-                HourlyRow(model.hours.take(hourCount))
-                if (size.height >= 200.dp) {
+                HourlyRow(model.hours.take(hourCount), compact = size.height < 175.dp)
+                // Only as many days as fit whole (header and hours take ~170dp, each day ~26dp).
+                val dayCount = when {
+                    size.height >= 300.dp -> 5
+                    size.height >= 270.dp -> 4
+                    size.height >= 245.dp -> 3
+                    else -> 0
+                }
+                if (dayCount > 0) {
                     Spacer(GlanceModifier.height(10.dp))
-                    val dayCount = when {
-                        size.height >= 280.dp -> 5
-                        else -> 3
-                    }
                     DailyRows(model.days.take(dayCount), rangeWidth = if (size.width >= 320.dp) 90.dp else 60.dp)
                 }
             }
@@ -242,16 +257,16 @@ private fun ForecastHeader(model: WidgetModel) {
 }
 
 @Composable
-private fun HourlyRow(hours: List<WidgetHour>) {
+private fun HourlyRow(hours: List<WidgetHour>, compact: Boolean = false) {
     Row(modifier = GlanceModifier.fillMaxWidth()) {
         hours.forEach { hour ->
             Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = hour.label, style = text(11.sp, WhiteSecondary, align = TextAlign.Center), maxLines = 1)
-                Spacer(GlanceModifier.height(2.dp))
-                WeatherIcon(hour.icon, 26.dp, hour.label)
-                Spacer(GlanceModifier.height(2.dp))
-                Text(text = hour.temperature, style = text(13.sp, weight = FontWeight.Medium, align = TextAlign.Center), maxLines = 1)
-                Text(text = hour.precipitation ?: " ", style = text(9.sp, RainBlue, align = TextAlign.Center), maxLines = 1)
+                Text(text = hour.label, style = text(if (compact) 10.sp else 11.sp, WhiteSecondary, align = TextAlign.Center), maxLines = 1)
+                Spacer(GlanceModifier.height(if (compact) 1.dp else 2.dp))
+                WeatherIcon(hour.icon, if (compact) 20.dp else 26.dp, hour.label)
+                Spacer(GlanceModifier.height(if (compact) 1.dp else 2.dp))
+                Text(text = hour.temperature, style = text(if (compact) 12.sp else 13.sp, weight = FontWeight.Medium, align = TextAlign.Center), maxLines = 1)
+                if (!compact) Text(text = hour.precipitation ?: " ", style = text(9.sp, RainBlue, align = TextAlign.Center), maxLines = 1)
             }
         }
     }
@@ -290,3 +305,91 @@ private fun RangeBar(start: Float, end: Float, width: Dp) {
         }
     }
 }
+
+// ---------------------------------------------------------------- Clock & weather widget
+
+@Composable
+fun ClockWidgetContent(model: WidgetModel) {
+    val size = LocalSize.current
+    // Short: compact clock. Medium: a bigger clock. Tall: room for the next hours too.
+    val tall = size.height >= 180.dp
+    val medium = !tall && size.height >= 135.dp
+    val wide = size.width >= 300.dp
+    WidgetFrame(model, horizontal = 16.dp, vertical = 10.dp) {
+        Column(modifier = GlanceModifier.fillMaxSize()) {
+            Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+                ClockFace(
+                    model = model,
+                    timeSize = when {
+                        medium -> 56.sp
+                        tall -> 52.sp
+                        else -> 42.sp
+                    },
+                    dateSize = 13.sp,
+                    longDate = wide,
+                    modifier = GlanceModifier.defaultWeight(),
+                )
+                Column(horizontalAlignment = Alignment.End) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        WeatherIcon(model.icon, if (tall || medium) 36.dp else 30.dp, model.condition)
+                        Spacer(GlanceModifier.width(4.dp))
+                        Text(text = model.temperature, style = text(if (tall || medium) 30.sp else 26.sp, family = Light), maxLines = 1)
+                    }
+                    Text(text = model.condition, style = text(12.sp, WhiteSecondary, align = TextAlign.End), maxLines = 1)
+                    if (model.highLow.isNotBlank()) {
+                        Text(text = model.highLow, style = text(11.sp, WhiteSecondary, align = TextAlign.End), maxLines = 1)
+                    }
+                }
+            }
+            Spacer(GlanceModifier.defaultWeight())
+            if (tall && model.hasData) {
+                HourlyRow(model.hours.take(if (wide) 7 else 5), compact = true)
+                Spacer(GlanceModifier.defaultWeight())
+            }
+            Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                LocationLabel(model, 11.sp, modifier = GlanceModifier.defaultWeight())
+                StatusLine(model, 10.sp)
+                Spacer(GlanceModifier.width(8.dp))
+                RefreshButton(model, 26.dp)
+            }
+        }
+    }
+}
+
+/**
+ * Time and date as platform TextClocks, so they tick every minute without waking the app. Tapping
+ * them opens the clock app's alarms.
+ */
+@Composable
+private fun ClockFace(model: WidgetModel, timeSize: TextUnit, dateSize: TextUnit, longDate: Boolean, modifier: GlanceModifier) {
+    val context = LocalContext.current
+    val alarms = PendingIntent.getActivity(
+        context,
+        REQUEST_ALARMS,
+        Intent(AlarmClock.ACTION_SHOW_ALARMS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+    val time = RemoteViews(context.packageName, R.layout.widget_clock_time).apply {
+        setTextViewTextSize(R.id.clock_time, TypedValue.COMPLEX_UNIT_SP, timeSize.value)
+        // Follow Nimbus's 12/24-hour setting when it overrides the system's.
+        model.clock24h?.let { use24h ->
+            val pattern = if (use24h) "HH:mm" else "h:mm"
+            setCharSequence(R.id.clock_time, "setFormat12Hour", pattern)
+            setCharSequence(R.id.clock_time, "setFormat24Hour", pattern)
+        }
+        setOnClickPendingIntent(R.id.clock_time, alarms)
+    }
+    val date = RemoteViews(context.packageName, R.layout.widget_clock_date).apply {
+        setTextViewTextSize(R.id.clock_date, TypedValue.COMPLEX_UNIT_SP, dateSize.value)
+        val pattern = DateFormat.getBestDateTimePattern(Locale.getDefault(), if (longDate) "EEEEMMMMd" else "EEEMMMd")
+        setCharSequence(R.id.clock_date, "setFormat12Hour", pattern)
+        setCharSequence(R.id.clock_date, "setFormat24Hour", pattern)
+        setOnClickPendingIntent(R.id.clock_date, alarms)
+    }
+    Column(modifier = modifier) {
+        AndroidRemoteViews(time)
+        AndroidRemoteViews(date)
+    }
+}
+
+private const val REQUEST_ALARMS = 4201

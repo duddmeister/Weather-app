@@ -1,6 +1,9 @@
 package io.github.duddmeister.weather.ui.home
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,6 +68,7 @@ import io.github.duddmeister.weather.model.WeatherSnapshot
 import io.github.duddmeister.weather.ui.components.CardLabel
 import io.github.duddmeister.weather.ui.components.GlassCard
 import io.github.duddmeister.weather.ui.components.WeatherIcon
+import io.github.duddmeister.weather.ui.components.rememberAppearProgress
 import io.github.duddmeister.weather.ui.components.temperatureColor
 import io.github.duddmeister.weather.ui.theme.SkyText
 import java.time.Instant
@@ -82,6 +87,17 @@ fun HourlyCard(snapshot: WeatherSnapshot, now: NowConditions, nowMillis: Long, s
     val hours = remember(snapshot, nowMillis / 300_000) { snapshot.upcomingHours(nowMillis, 48) }
     if (hours.isEmpty()) return
     val units = settings.units
+    val appear by rememberAppearProgress(durationMillis = 1000)
+    // Switching between temperature, rain and wind redraws the chart from the baseline.
+    val modeSwitch = remember { Animatable(1f) }
+    var shownMode by remember { mutableStateOf(mode) }
+    LaunchedEffect(mode) {
+        if (mode != shownMode) {
+            shownMode = mode
+            modeSwitch.snapTo(0f)
+            modeSwitch.animateTo(1f, tween(650, easing = FastOutSlowInEasing))
+        }
+    }
 
     GlassCard(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = 16.dp)) {
         CardLabel(Icons.Rounded.Schedule, "Hourly forecast", Modifier.padding(horizontal = 16.dp)) {
@@ -145,6 +161,7 @@ fun HourlyCard(snapshot: WeatherSnapshot, now: NowConditions, nowMillis: Long, s
                     labels = labels,
                     lineColors = colors,
                     bars = mode == HourlyMode.Precipitation,
+                    progress = { appear * modeSwitch.value },
                     modifier = Modifier.width(HourColumn * hours.size).height(92.dp),
                 )
                 Spacer(Modifier.height(4.dp))
@@ -207,6 +224,7 @@ private fun HourlyChart(
     labels: List<String>,
     lineColors: List<Color>,
     bars: Boolean,
+    progress: () -> Float,
     modifier: Modifier = Modifier,
 ) {
     val measurer = rememberTextMeasurer()
@@ -214,6 +232,8 @@ private fun HourlyChart(
     Canvas(modifier) {
         val count = values.size
         if (count == 0) return@Canvas
+        val grow = progress().coerceIn(0f, 1f)
+        val labelAlpha = ((grow - 0.5f) * 2f).coerceIn(0f, 1f)
         val column = size.width / count
         val top = 24.dp.toPx()
         val bottom = size.height - 6.dp.toPx()
@@ -223,7 +243,7 @@ private fun HourlyChart(
         if (bars) {
             values.forEachIndexed { i, value ->
                 val fraction = ((value ?: 0.0) / 100.0).toFloat().coerceIn(0f, 1f)
-                val height = (bottom - top) * fraction
+                val height = (bottom - top) * fraction * grow
                 val x = column * i + column * 0.28f
                 drawRoundRect(
                     color = Color(0xFF6CC7FF).copy(alpha = 0.35f + 0.6f * fraction),
@@ -233,7 +253,7 @@ private fun HourlyChart(
                 )
                 if (fraction > 0f) {
                     val layout = measurer.measure(labels[i], labelStyle.copy(color = SkyText.Rain))
-                    drawText(layout, topLeft = Offset(column * (i + 0.5f) - layout.size.width / 2f, bottom - height - layout.size.height - 2.dp.toPx()))
+                    drawText(layout, topLeft = Offset(column * (i + 0.5f) - layout.size.width / 2f, bottom - height - layout.size.height - 2.dp.toPx()), alpha = labelAlpha)
                 }
             }
             return@Canvas
@@ -242,8 +262,9 @@ private fun HourlyChart(
         val min = known.min()
         val max = known.max()
         val range = (max - min).coerceAtLeast(1.0)
+        // The line rises from the baseline as the card comes in.
         val points = values.mapIndexed { i, value ->
-            value?.let { Offset(column * (i + 0.5f), bottom - ((it - min) / range).toFloat() * (bottom - top - 8.dp.toPx())) }
+            value?.let { Offset(column * (i + 0.5f), bottom - ((it - min) / range).toFloat() * (bottom - top - 8.dp.toPx()) * grow) }
         }
         val line = Path()
         var previous: Offset? = null
@@ -286,7 +307,7 @@ private fun HourlyChart(
             if (point == null) return@forEachIndexed
             drawCircle(Color.White, radius = 3.dp.toPx(), center = point)
             val layout = measurer.measure(labels[i], labelStyle)
-            drawText(layout, topLeft = Offset(point.x - layout.size.width / 2f, point.y - layout.size.height - 4.dp.toPx()))
+            drawText(layout, topLeft = Offset(point.x - layout.size.width / 2f, point.y - layout.size.height - 4.dp.toPx()), alpha = labelAlpha)
         }
     }
 }
@@ -307,6 +328,7 @@ fun DailyCard(snapshot: WeatherSnapshot, now: NowConditions, nowMillis: Long, se
         days.forEachIndexed { index, day ->
             if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = Color.White.copy(alpha = 0.08f))
             DayRow(
+                index = index,
                 day = day,
                 label = text.dayLabel(LocalDate.parse(day.date), today),
                 currentTemperature = if (index == 0) now.temperature else null,
@@ -323,6 +345,7 @@ fun DailyCard(snapshot: WeatherSnapshot, now: NowConditions, nowMillis: Long, se
 
 @Composable
 private fun DayRow(
+    index: Int,
     day: DailyPoint,
     label: String,
     currentTemperature: Double?,
@@ -334,6 +357,7 @@ private fun DayRow(
     onClick: () -> Unit,
 ) {
     val units = settings.units
+    val grow by rememberAppearProgress(durationMillis = 750, extraDelayMillis = index * 40)
     Column(
         Modifier
             .fillMaxWidth()
@@ -356,7 +380,7 @@ private fun DayRow(
                 modifier = Modifier.width(44.dp),
             )
             Spacer(Modifier.width(10.dp))
-            RangeBar(day.temperatureMin, day.temperatureMax, weekMin, weekMax, currentTemperature, Modifier.weight(1f).height(6.dp))
+            RangeBar(day.temperatureMin, day.temperatureMax, weekMin, weekMax, currentTemperature, { grow }, Modifier.weight(1f).height(6.dp))
             Spacer(Modifier.width(10.dp))
             Text(
                 Units.formatTemperature(day.temperatureMax, units.temperature),
@@ -371,14 +395,18 @@ private fun DayRow(
 }
 
 @Composable
-private fun RangeBar(low: Double?, high: Double?, weekMin: Double, weekMax: Double, current: Double?, modifier: Modifier) {
+private fun RangeBar(low: Double?, high: Double?, weekMin: Double, weekMax: Double, current: Double?, grow: () -> Float, modifier: Modifier) {
     Canvas(modifier) {
         val radius = CornerRadius(size.height / 2f)
         drawRoundRect(Color.White.copy(alpha = 0.16f), cornerRadius = radius)
         if (low == null || high == null) return@Canvas
         val span = (weekMax - weekMin).coerceAtLeast(1.0)
-        val start = ((low - weekMin) / span).toFloat() * size.width
-        val end = ((high - weekMin) / span).toFloat() * size.width
+        val fullStart = ((low - weekMin) / span).toFloat() * size.width
+        val fullEnd = ((high - weekMin) / span).toFloat() * size.width
+        val middle = (fullStart + fullEnd) / 2f
+        val g = grow()
+        val start = middle - (middle - fullStart) * g
+        val end = middle + (fullEnd - middle) * g
         val width = (end - start).coerceAtLeast(size.height)
         drawRoundRect(
             brush = Brush.horizontalGradient(listOf(temperatureColor(low), temperatureColor(high)), startX = start, endX = start + width),
@@ -386,10 +414,11 @@ private fun RangeBar(low: Double?, high: Double?, weekMin: Double, weekMax: Doub
             size = Size(width, size.height),
             cornerRadius = radius,
         )
-        if (current != null) {
+        if (current != null && g > 0.6f) {
             val x = (((current - weekMin) / span).toFloat() * size.width).coerceIn(size.height / 2f, size.width - size.height / 2f)
-            drawCircle(Color(0xFF1B2440), radius = size.height * 0.95f, center = Offset(x, size.height / 2f))
-            drawCircle(Color.White, radius = size.height * 0.62f, center = Offset(x, size.height / 2f))
+            val pop = ((g - 0.6f) / 0.4f).coerceIn(0f, 1f)
+            drawCircle(Color(0xFF1B2440), radius = size.height * 0.95f * pop, center = Offset(x, size.height / 2f))
+            drawCircle(Color.White, radius = size.height * 0.62f * pop, center = Offset(x, size.height / 2f))
         }
     }
 }

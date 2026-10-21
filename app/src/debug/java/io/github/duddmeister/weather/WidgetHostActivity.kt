@@ -15,6 +15,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import io.github.duddmeister.weather.core.AppLog
+import io.github.duddmeister.weather.widget.ClockWidgetReceiver
 import io.github.duddmeister.weather.widget.ForecastWidgetReceiver
 import io.github.duddmeister.weather.widget.NowWidgetReceiver
 
@@ -44,8 +45,9 @@ class WidgetHostActivity : ComponentActivity() {
         })
 
         val specs = listOf(
-            Triple("Current weather · live", NowWidgetReceiver::class.java, SizeF(170f, 170f)),
-            Triple("Weather forecast · live", ForecastWidgetReceiver::class.java, SizeF(330f, 330f)),
+            Triple("Clock & weather · live", ClockWidgetReceiver::class.java, SizeF(330f, 180f)),
+            Triple("Current weather · live", NowWidgetReceiver::class.java, SizeF(150f, 150f)),
+            Triple("Weather forecast · live", ForecastWidgetReceiver::class.java, SizeF(330f, 300f)),
         )
         for ((label, receiver, size) in specs) {
             column.addView(TextView(this).apply {

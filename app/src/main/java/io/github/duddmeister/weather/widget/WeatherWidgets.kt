@@ -59,7 +59,11 @@ abstract class NimbusWidget : GlanceAppWidget() {
 
 class NowWidget : NimbusWidget() {
     override val sizeMode: SizeMode = SizeMode.Responsive(
-        setOf(DpSize(100.dp, 50.dp), DpSize(200.dp, 50.dp), DpSize(110.dp, 110.dp), DpSize(200.dp, 110.dp)),
+        setOf(
+            DpSize(100.dp, 50.dp), DpSize(200.dp, 50.dp),
+            DpSize(110.dp, 110.dp), DpSize(200.dp, 110.dp),
+            DpSize(110.dp, 180.dp), DpSize(200.dp, 180.dp),
+        ),
     )
 
     @Composable
@@ -67,12 +71,27 @@ class NowWidget : NimbusWidget() {
 }
 
 class ForecastWidget : NimbusWidget() {
+    // Android accepts at most 16 sizes per widget (MAX_SIZES); narrow widgets only get the short layouts.
     override val sizeMode: SizeMode = SizeMode.Responsive(
-        setOf(DpSize(180.dp, 110.dp), DpSize(250.dp, 110.dp), DpSize(250.dp, 200.dp), DpSize(250.dp, 280.dp), DpSize(320.dp, 280.dp)),
+        setOf(DpSize(180.dp, 110.dp), DpSize(180.dp, 175.dp)) +
+            listOf(250.dp, 320.dp).flatMap { width ->
+                listOf(110.dp, 130.dp, 175.dp, 245.dp, 270.dp, 300.dp).map { height -> DpSize(width, height) }
+            },
     )
 
     @Composable
     override fun Content(model: WidgetModel) = ForecastWidgetContent(model)
+}
+
+class ClockWidget : NimbusWidget() {
+    override val sizeMode: SizeMode = SizeMode.Responsive(
+        listOf(180.dp, 250.dp, 300.dp).flatMap { width ->
+            listOf(100.dp, 135.dp, 180.dp).map { height -> DpSize(width, height) }
+        }.toSet(),
+    )
+
+    @Composable
+    override fun Content(model: WidgetModel) = ClockWidgetContent(model)
 }
 
 class NowWidgetReceiver : GlanceAppWidgetReceiver() {
@@ -93,6 +112,15 @@ class ForecastWidgetReceiver : GlanceAppWidgetReceiver() {
     }
 }
 
+class ClockWidgetReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = ClockWidget()
+
+    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        super.onUpdate(context, appWidgetManager, appWidgetIds)
+        WidgetUpdater.refreshIfStale(context)
+    }
+}
+
 /** The widget reload button. */
 class RefreshAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
@@ -100,12 +128,24 @@ class RefreshAction : ActionCallback {
     }
 }
 
+/** The most sizes one widget may declare: RemoteViews refuses more and the launcher shows an error. */
+const val MAX_SIZES = 16
+
 object WidgetUpdater {
     private const val TAG = "WidgetUpdater"
     private const val STALE_MILLIS = 20 * 60 * 1000L
 
+    private fun allWidgets(): List<NimbusWidget> = listOf(NowWidget(), ForecastWidget(), ClockWidget())
+
+    /** The widget behind an AppWidget provider (receiver) class. */
+    fun widgetFor(providerClassName: String?): NimbusWidget = when (providerClassName) {
+        ForecastWidgetReceiver::class.java.name -> ForecastWidget()
+        ClockWidgetReceiver::class.java.name -> ClockWidget()
+        else -> NowWidget()
+    }
+
     suspend fun updateAll(context: Context) {
-        for (widget in listOf(NowWidget(), ForecastWidget())) {
+        for (widget in allWidgets()) {
             try {
                 widget.updateAll(context)
             } catch (e: CancellationException) {
@@ -119,7 +159,9 @@ object WidgetUpdater {
     /** Locations explicitly chosen for widgets (widgets on the default follow the first place). */
     suspend fun locationIdsInUse(context: Context): Set<String> {
         val manager = GlanceAppWidgetManager(context)
-        val ids = manager.getGlanceIds(NowWidget::class.java) + manager.getGlanceIds(ForecastWidget::class.java)
+        val ids = manager.getGlanceIds(NowWidget::class.java) +
+            manager.getGlanceIds(ForecastWidget::class.java) +
+            manager.getGlanceIds(ClockWidget::class.java)
         return ids.mapNotNull { id ->
             runCatching { getAppWidgetState(context, PreferencesGlanceStateDefinition, id)[WidgetKeys.LOCATION_ID] }.getOrNull()
         }.toSet()

@@ -1,5 +1,7 @@
 package io.github.duddmeister.weather.ui.home
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,7 +10,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.rounded.WbTwilight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +65,9 @@ import io.github.duddmeister.weather.model.Units
 import io.github.duddmeister.weather.model.WeatherSnapshot
 import io.github.duddmeister.weather.ui.components.CardLabel
 import io.github.duddmeister.weather.ui.components.GlassCard
+import io.github.duddmeister.weather.ui.components.Reveal
+import io.github.duddmeister.weather.ui.components.RevealState
+import io.github.duddmeister.weather.ui.components.rememberAppearProgress
 import io.github.duddmeister.weather.ui.sky.moonLitPath
 import io.github.duddmeister.weather.ui.theme.SkyText
 import kotlin.math.PI
@@ -80,11 +85,17 @@ fun LazyListScope.detailRows(
     settings: AppSettings,
     use24h: Boolean,
     location: SavedLocation,
+    reveal: RevealState,
+    firstOrder: Int,
 ) {
+    var order = firstOrder
     snapshot.airQuality?.let { air ->
         val european = Scales.useEuropean(settings.aqiScale, location.countryCode)
         val value = if (european) air.europeanAqi else air.usAqi
-        if (value != null) item(key = "air") { AirQualityTile(air, value, european) }
+        if (value != null) {
+            val o = order++
+            item(key = "air") { Reveal(reveal, "air", o, Modifier.animateItem()) { AirQualityTile(air, value, european) } }
+        }
     }
     val tiles = listOf(
         TileSpec("uv") { m -> UvTile(snapshot, now, nowMillis, use24h, m) },
@@ -99,10 +110,14 @@ fun LazyListScope.detailRows(
         TileSpec("clouds") { m -> CloudTile(now, m) },
     )
     tiles.chunked(2).forEach { row ->
-        item(key = "tiles-" + row.joinToString("-") { it.key }) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                row.forEach { tile -> tile.content(Modifier.weight(1f)) }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
+        val key = "tiles-" + row.joinToString("-") { it.key }
+        val o = order++
+        item(key = key) {
+            Reveal(reveal, key, o, Modifier.animateItem()) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    row.forEach { tile -> tile.content(Modifier.weight(1f)) }
+                    if (row.size == 1) Spacer(Modifier.weight(1f))
+                }
             }
         }
     }
@@ -131,9 +146,11 @@ private fun Caption(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 private fun ScaleBar(fraction: Float, colors: List<Color>, modifier: Modifier = Modifier) {
+    val appear by rememberAppearProgress(durationMillis = 1100)
+    val value by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(700), label = "scale")
     Canvas(modifier.fillMaxWidth().height(6.dp)) {
         drawRoundRect(Brush.horizontalGradient(colors), cornerRadius = CornerRadius(size.height / 2))
-        val x = (fraction.coerceIn(0f, 1f) * size.width).coerceIn(size.height / 2, size.width - size.height / 2)
+        val x = (value * appear * size.width).coerceIn(size.height / 2, size.width - size.height / 2)
         drawCircle(Color(0xFF1B2440), radius = size.height * 0.95f, center = Offset(x, size.height / 2))
         drawCircle(Color.White, radius = size.height * 0.62f, center = Offset(x, size.height / 2))
     }
@@ -186,7 +203,10 @@ private fun SunTile(snapshot: WeatherSnapshot, nowMillis: Long, use24h: Boolean,
     Tile(Icons.Rounded.WbTwilight, label, modifier) {
         BigValue(nextEvent?.let { text.time(it) } ?: "--")
         Box(Modifier.fillMaxWidth().weight(1f)) {
-            if (sunrise != null && sunset != null) SunArc(Astronomy.sunProgress(nowSec, sunrise, sunset).toFloat())
+            if (sunrise != null && sunset != null) {
+                val appear by rememberAppearProgress(durationMillis = 1400)
+                SunArc(Astronomy.sunProgress(nowSec, sunrise, sunset).toFloat()) { appear }
+            }
         }
         Caption(
             when {
@@ -199,7 +219,7 @@ private fun SunTile(snapshot: WeatherSnapshot, nowMillis: Long, use24h: Boolean,
 }
 
 @Composable
-private fun BoxScope.SunArc(progress: Float) {
+private fun BoxScope.SunArc(progress: Float, appear: () -> Float) {
     Canvas(Modifier.matchParentSize()) {
         val horizon = size.height * 0.78f
         val radiusX = size.width * 0.46f
@@ -216,7 +236,7 @@ private fun BoxScope.SunArc(progress: Float) {
         drawPath(arc, Color.White.copy(alpha = 0.35f), style = Stroke(width = 1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))))
         drawLine(Color.White.copy(alpha = 0.3f), Offset(0f, horizon), Offset(size.width, horizon), strokeWidth = 1.dp.toPx())
         if (progress in 0f..1f) {
-            val angle = PI * progress
+            val angle = PI * progress * appear()
             val sun = Offset(center.x - radiusX * cos(angle).toFloat(), center.y - radiusY * sin(angle).toFloat())
             drawCircle(Brush.radialGradient(listOf(Color(0x80FFE082), Color.Transparent), center = sun, radius = 16.dp.toPx()), radius = 16.dp.toPx(), center = sun)
             drawCircle(Color(0xFFFFD54F), radius = 5.dp.toPx(), center = sun)
@@ -250,6 +270,7 @@ private fun WindTile(now: NowConditions, settings: AppSettings, modifier: Modifi
 private fun Compass(directionFrom: Double?, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
     val style = MaterialTheme.typography.labelSmall.copy(color = SkyText.Tertiary)
+    val swing by rememberAppearProgress(durationMillis = 1300)
     Canvas(modifier) {
         val radius = size.minDimension / 2f
         val center = Offset(size.width / 2f, size.height / 2f)
@@ -274,7 +295,7 @@ private fun Compass(directionFrom: Double?, modifier: Modifier) {
         }
         if (directionFrom != null) {
             // The arrow points where the wind is going.
-            rotate(directionFrom.toFloat() + 180f, center) {
+            rotate((directionFrom.toFloat() + 180f) * swing, center) {
                 val tip = Offset(center.x, center.y - radius * 0.62f)
                 val tail = Offset(center.x, center.y + radius * 0.5f)
                 drawLine(Color.White, tail, tip, strokeWidth = 2.5.dp.toPx(), cap = StrokeCap.Round)
@@ -354,18 +375,13 @@ private fun PressureTile(snapshot: WeatherSnapshot, now: NowConditions, nowMilli
     val trend = remember(snapshot, nowMillis / 600_000) { snapshot.pressureTrend(nowMillis) }
     val pressure = now.pressure
     Tile(Icons.Rounded.Compress, "Pressure", modifier) {
-        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-            Gauge(pressure, Modifier.fillMaxSize())
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Spacer(Modifier.height(18.dp))
-                Text(
-                    Units.formatPressure(pressure, settings.units.pressure).substringBefore(' '),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
-                )
-                Text(settings.units.pressure.label, style = MaterialTheme.typography.labelSmall, color = SkyText.Secondary)
-            }
-        }
+        PressureGauge(
+            hpa = pressure,
+            reading = Units.formatPressure(pressure, settings.units.pressure).substringBefore(' '),
+            unit = settings.units.pressure.label,
+            modifier = Modifier.fillMaxWidth().weight(1f),
+        )
+        Spacer(Modifier.height(4.dp))
         Caption(
             when (trend) {
                 PressureTrend.Rising -> "↑ Rising over the last 3 hours."
@@ -377,18 +393,34 @@ private fun PressureTile(snapshot: WeatherSnapshot, now: NowConditions, nowMilli
     }
 }
 
+/** A 240° gauge from 960 to 1060 hPa that fits its box, with the reading in the middle. */
 @Composable
-private fun Gauge(hpa: Double?, modifier: Modifier) {
+private fun PressureGauge(hpa: Double?, reading: String, unit: String, modifier: Modifier) {
+    val measurer = rememberTextMeasurer()
+    val readingStyle = MaterialTheme.typography.titleLarge.copy(color = Color.White)
+    val unitStyle = MaterialTheme.typography.labelSmall.copy(color = SkyText.Secondary)
+    val appear by rememberAppearProgress(durationMillis = 1200)
+    val fraction by animateFloatAsState(
+        hpa?.let { ((it - 960.0) / 100.0).toFloat().coerceIn(0f, 1f) } ?: 0f,
+        tween(700),
+        label = "pressure",
+    )
     Canvas(modifier) {
         val stroke = 4.dp.toPx()
-        val diameter = minOf(size.width, size.height * 1.5f) - stroke
-        val topLeft = Offset((size.width - diameter) / 2f, stroke / 2f + 4.dp.toPx())
-        val arcSize = Size(diameter, diameter)
+        // The arc reaches one radius above its centre and half a radius below it.
+        val radius = (minOf(size.width / 2f, size.height / 1.5f) - stroke).coerceAtLeast(1f)
+        val center = Offset(size.width / 2f, (size.height - radius * 1.5f) / 2f + radius)
+        val topLeft = Offset(center.x - radius, center.y - radius)
+        val arcSize = Size(radius * 2f, radius * 2f)
         drawArc(Color.White.copy(alpha = 0.2f), startAngle = 150f, sweepAngle = 240f, useCenter = false, topLeft = topLeft, size = arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
         if (hpa != null) {
-            val fraction = ((hpa - 960.0) / 100.0).toFloat().coerceIn(0f, 1f)
-            drawArc(Color.White, startAngle = 150f, sweepAngle = 240f * fraction, useCenter = false, topLeft = topLeft, size = arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+            drawArc(Color.White, startAngle = 150f, sweepAngle = 240f * fraction * appear, useCenter = false, topLeft = topLeft, size = arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
         }
+        val value = measurer.measure(reading, readingStyle)
+        val label = measurer.measure(unit, unitStyle)
+        val blockTop = center.y - (value.size.height + label.size.height) / 2f
+        drawText(value, topLeft = Offset(center.x - value.size.width / 2f, blockTop))
+        drawText(label, topLeft = Offset(center.x - label.size.width / 2f, blockTop + value.size.height))
     }
 }
 

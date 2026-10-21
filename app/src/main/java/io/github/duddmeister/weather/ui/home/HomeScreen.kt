@@ -1,11 +1,16 @@
 package io.github.duddmeister.weather.ui.home
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,7 +42,6 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,8 +54,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -60,8 +66,10 @@ import io.github.duddmeister.weather.model.Units
 import io.github.duddmeister.weather.ui.LocationPage
 import io.github.duddmeister.weather.ui.MainUiState
 import io.github.duddmeister.weather.ui.components.LocalSkyPalette
+import io.github.duddmeister.weather.ui.components.PulsingDots
 import io.github.duddmeister.weather.ui.theme.SkyText
 import io.github.duddmeister.weather.update.UpdateState
+import kotlin.math.absoluteValue
 
 @Composable
 fun HomeScreen(
@@ -90,23 +98,45 @@ fun HomeScreen(
                     key = { index -> state.pages.getOrNull(index)?.location?.id ?: index },
                 ) { index ->
                     val page = state.pages.getOrNull(index) ?: return@HorizontalPager
-                    WeatherPage(
-                        page = page,
-                        settings = state.settings,
-                        nowMillis = nowMillis,
-                        listState = listStateFor(page.location.id),
-                        onRefresh = { onRefresh(page) },
-                    )
+                    Box(
+                        Modifier.graphicsLayer {
+                            // Places recede slightly as they're swiped away and come forward as they arrive.
+                            val away = ((pagerState.currentPage - index) + pagerState.currentPageOffsetFraction).absoluteValue.coerceIn(0f, 1f)
+                            alpha = 1f - 0.4f * away
+                            val scale = 1f - 0.06f * away
+                            scaleX = scale
+                            scaleY = scale
+                        },
+                    ) {
+                        WeatherPage(
+                            page = page,
+                            settings = state.settings,
+                            nowMillis = nowMillis,
+                            listState = listStateFor(page.location.id),
+                            onRefresh = { onRefresh(page) },
+                        )
+                    }
                 }
                 val currentPage = state.pages.getOrNull(pagerState.currentPage)
                 val listState = currentPage?.let { listStateFor(it.location.id) }
                 val scrolled by remember(listState) {
                     derivedStateOf { listState != null && (listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 420) }
                 }
+                // The bar's backdrop fades in over the first stretch of scrolling, so cards never show through the title.
+                val backdrop by remember(listState) {
+                    derivedStateOf {
+                        when {
+                            listState == null -> 0f
+                            listState.firstVisibleItemIndex > 0 -> 1f
+                            else -> (listState.firstVisibleItemScrollOffset / 260f).coerceIn(0f, 1f)
+                        }
+                    }
+                }
                 TopBar(
                     pages = state.pages,
                     currentIndex = pagerState.currentPage,
                     compactTitle = currentPage?.takeIf { scrolled }?.let { compactTitle(it, state, nowMillis) },
+                    backdrop = { backdrop },
                     onOpenPlaces = onOpenPlaces,
                     onOpenSettings = onOpenSettings,
                 )
@@ -137,16 +167,13 @@ private fun TopBar(
     pages: List<LocationPage>,
     currentIndex: Int,
     compactTitle: String?,
+    backdrop: () -> Float,
     onOpenPlaces: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     val palette = LocalSkyPalette.current
     Column(Modifier.fillMaxWidth()) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(palette.top.copy(alpha = 0.92f), palette.top.copy(alpha = 0.55f)))),
-        ) {
+        Box(Modifier.fillMaxWidth().drawBehind { drawRect(palette.top.copy(alpha = 0.97f * backdrop())) }) {
             Column {
                 Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
                 Row(
@@ -157,7 +184,15 @@ private fun TopBar(
                         Icon(Icons.Rounded.LocationOn, contentDescription = "Places", tint = Color.White)
                     }
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        Crossfade(targetState = compactTitle, label = "topBarTitle") { title ->
+                        AnimatedContent(
+                            targetState = compactTitle,
+                            transitionSpec = {
+                                (fadeIn(tween(220)) + slideInVertically(tween(260)) { it / 3 }) togetherWith
+                                    (fadeOut(tween(160)) + slideOutVertically(tween(200)) { -it / 3 })
+                            },
+                            contentAlignment = Alignment.Center,
+                            label = "topBarTitle",
+                        ) { title ->
                             if (title != null) {
                                 Text(title, style = MaterialTheme.typography.titleMedium, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             } else {
@@ -174,8 +209,10 @@ private fun TopBar(
         Spacer(
             Modifier
                 .fillMaxWidth()
-                .height(18.dp)
-                .background(Brush.verticalGradient(listOf(palette.top.copy(alpha = 0.55f), Color.Transparent))),
+                .height(24.dp)
+                .drawBehind {
+                    drawRect(Brush.verticalGradient(listOf(palette.top.copy(alpha = 0.97f * backdrop()), Color.Transparent)))
+                },
         )
     }
 }
@@ -186,11 +223,22 @@ private fun PageDots(pages: List<LocationPage>, currentIndex: Int) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
         pages.forEachIndexed { index, page ->
             val selected = index == currentIndex
-            val tint = if (selected) Color.White else Color.White.copy(alpha = 0.4f)
+            val emphasis by animateFloatAsState(if (selected) 1f else 0f, spring(stiffness = Spring.StiffnessMediumLow), label = "dot")
+            val tint = Color.White.copy(alpha = 0.4f + 0.6f * emphasis)
             if (page.location.isCurrent) {
-                Icon(Icons.Rounded.NearMe, contentDescription = null, tint = tint, modifier = Modifier.size(11.dp))
+                Icon(
+                    Icons.Rounded.NearMe,
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = Modifier.size(11.dp).graphicsLayer {
+                        val scale = 1f + 0.25f * emphasis
+                        scaleX = scale
+                        scaleY = scale
+                    },
+                )
             } else {
-                Box(Modifier.size(if (selected) 8.dp else 6.dp).clip(CircleShape).background(tint))
+                // The selected place stretches into a pill.
+                Box(Modifier.width(6.dp + 12.dp * emphasis).height(6.dp).clip(CircleShape).background(tint))
             }
         }
     }
@@ -277,8 +325,8 @@ private fun Locating() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(32.dp))
-        Spacer(Modifier.height(16.dp))
-        Text("Finding your location…", style = MaterialTheme.typography.titleMedium, color = Color.White)
+        PulsingDots(Color.White, dotSize = 8.dp)
+        Spacer(Modifier.height(18.dp))
+        Text("Finding your location", style = MaterialTheme.typography.titleMedium, color = Color.White)
     }
 }

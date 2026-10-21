@@ -6,7 +6,7 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -37,10 +37,18 @@ jobs:
       - name: Build release APK, run unit tests and lint
         env:
           LIVE_API_TEST: "1"
-        run: >
-          ./gradlew --continue
-          assembleRelease assembleDebug testReleaseUnitTest lintRelease
-          -PappVersionCode=$VERSION_CODE -PappVersionName=$VERSION_NAME -PupdateRepo=$GITHUB_REPOSITORY
+        run: |
+          set -o pipefail
+          ./gradlew --continue \
+            assembleRelease assembleDebug testReleaseUnitTest lintRelease \
+            -PappVersionCode=$VERSION_CODE -PappVersionName=$VERSION_NAME -PupdateRepo=$GITHUB_REPOSITORY \
+            2>&1 | tee build.log
+
+      - name: Summarize failures
+        if: failure()
+        run: |
+          echo "===== Failure summary ====="
+          grep -E "^e: |: Error: |error: |FAILED|What went wrong|Execution failed|Could not resolve|Caused by" build.log | head -n 300
 
       - name: Verify APK signature
         run: |

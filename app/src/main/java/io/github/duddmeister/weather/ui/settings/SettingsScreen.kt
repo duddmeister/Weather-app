@@ -66,9 +66,11 @@ fun SettingsScreen(
     updatesEnabled: Boolean,
     releasesUrl: String,
     hasBackgroundLocation: Boolean,
+    unrestrictedBattery: Boolean,
     onBack: () -> Unit,
     onChange: ((AppSettings) -> AppSettings) -> Unit,
     onBackgroundLocation: (Boolean) -> Unit,
+    onAllowUnrestrictedBattery: () -> Unit,
     onNotificationToggle: (enabled: Boolean, apply: (AppSettings) -> AppSettings) -> Unit,
     onCheckForUpdates: () -> Unit,
     onOpenUpdate: () -> Unit,
@@ -113,7 +115,26 @@ fun SettingsScreen(
                         settings.refreshIntervalMinutes.takeIf { it in AppSettings.REFRESH_INTERVALS } ?: 15,
                         { minutes -> if (minutes == 0) "Off" else if (minutes < 60) "${minutes}m" else "${minutes / 60}h" },
                     ) { v -> onChange { it.copy(refreshIntervalMinutes = v) } }
-                    Description("How often widgets and alerts update while the app is closed. Android may delay this when the battery is low; the widget's refresh button always works.")
+                    Description("How often widgets and alerts update while the app is closed. The widget's refresh button always works.")
+                    Divider()
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Reliable background updates", style = MaterialTheme.typography.bodyLarge, color = Color.White)
+                            Text(
+                                if (unrestrictedBattery) {
+                                    "On. Android won't hold back Nimbus's refreshes to save battery."
+                                } else {
+                                    "Android may postpone background refreshes to save battery. Allow Nimbus to run unrestricted so widgets stay current."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SkyText.Secondary,
+                            )
+                        }
+                        if (!unrestrictedBattery) {
+                            Spacer(Modifier.width(8.dp))
+                            TextButton(onClick = onAllowUnrestrictedBattery) { Text("Allow", color = Color.White) }
+                        }
+                    }
                     Divider()
                     Toggle(
                         title = "Follow me in the background",

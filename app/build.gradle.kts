@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.File
 
 plugins {
     alias(libs.plugins.android.application)
@@ -85,7 +86,7 @@ android {
         abortOnError = true
         checkReleaseBuilds = true
         textReport = true
-        textOutput = file("stdout")
+        textOutput = File("stdout")
         disable += setOf(
             "GradleDependency",
             "NewerVersionAvailable",

@@ -1,6 +1,11 @@
 package io.github.duddmeister.weather.ui
 
+import android.annotation.SuppressLint
 import android.app.Application
+import android.content.Intent
+import android.net.Uri
+import android.os.PowerManager
+import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.duddmeister.weather.container
@@ -32,7 +37,12 @@ data class LocationPage(
     val error: String?,
 )
 
-data class Permissions(val location: Boolean = false, val backgroundLocation: Boolean = false)
+data class Permissions(
+    val location: Boolean = false,
+    val backgroundLocation: Boolean = false,
+    /** Exempt from battery optimisation, so background refresh isn't deferred. */
+    val unrestrictedBattery: Boolean = false,
+)
 
 data class MainUiState(
     val ready: Boolean = false,
@@ -85,6 +95,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun currentPermissions() = Permissions(
         location = c.locations.hasLocationPermission(),
         backgroundLocation = c.locations.hasBackgroundLocationPermission(),
+        unrestrictedBattery = getApplication<Application>().getSystemService(PowerManager::class.java)
+            ?.isIgnoringBatteryOptimizations(getApplication<Application>().packageName) == true,
     )
 
     fun refreshPermissions() {
@@ -109,6 +121,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
         viewModelScope.launch { c.updates.check() }
+    }
+
+    /** Periodic top-up while the app is open; only fetches places older than the refresh threshold. */
+    fun refreshStale() {
+        viewModelScope.launch { c.refresher.refreshForeground() }
     }
 
     fun refresh(page: LocationPage) {
@@ -205,9 +222,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun dismissInstallPermission() = c.updates.cancelPermissionRequest()
 
-    fun installPermissionIntent() = android.content.Intent(
-        android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-        android.net.Uri.parse("package:" + getApplication<Application>().packageName),
+    @SuppressLint("BatteryLife") // Opt-in from Settings, explained in the UI; this app isn't on Play.
+    fun batteryExemptionIntent() = Intent(
+        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+        Uri.parse("package:" + getApplication<Application>().packageName),
+    )
+
+    fun installPermissionIntent() = Intent(
+        Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+        Uri.parse("package:" + getApplication<Application>().packageName),
     )
 
     fun canInstallPackages(): Boolean = getApplication<Application>().packageManager.canRequestPackageInstalls()

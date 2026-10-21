@@ -34,7 +34,9 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import io.github.duddmeister.weather.domain.conditionsAt
 import io.github.duddmeister.weather.ui.components.LocalSkyPalette
 import io.github.duddmeister.weather.ui.home.HomeScreen
@@ -80,6 +82,16 @@ fun NimbusRoot(vm: MainViewModel, launchRequest: LaunchRequest?, onLaunchRequest
     val listStateFor: (String) -> LazyListState = { id -> listStates.getOrPut(id) { LazyListState() } }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.onResume() }
+    // While the app stays open, keep topping up anything that has gone stale.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                delay(5 * 60_000L)
+                vm.refreshStale()
+            }
+        }
+    }
 
     val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     fun requestNotificationsIfNeeded() {
@@ -188,6 +200,7 @@ fun NimbusRoot(vm: MainViewModel, launchRequest: LaunchRequest?, onLaunchRequest
                             updatesEnabled = vm.updatesEnabled,
                             releasesUrl = vm.releasesPageUrl,
                             hasBackgroundLocation = state.permissions.backgroundLocation,
+                            unrestrictedBattery = state.permissions.unrestrictedBattery,
                             onBack = { screen = Screen.Home },
                             onChange = vm::updateSettings,
                             onBackgroundLocation = { enabled ->
@@ -199,6 +212,9 @@ fun NimbusRoot(vm: MainViewModel, launchRequest: LaunchRequest?, onLaunchRequest
                                         backgroundLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
                                     else -> vm.updateSettings { it.copy(backgroundLocation = true) }
                                 }
+                            },
+                            onAllowUnrestrictedBattery = {
+                                runCatching { context.startActivity(vm.batteryExemptionIntent()) }
                             },
                             onNotificationToggle = { enabled, apply ->
                                 vm.updateSettings(apply)

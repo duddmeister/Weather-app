@@ -13,7 +13,11 @@ adb_() { timeout 60 adb "$@"; }
 
 shot() {
   sleep "${2:-2}"
-  timeout 30 adb exec-out screencap -p > "$OUT/$1.png" && echo "Captured $1"
+  if adb_ shell screencap -p /sdcard/shot.png && adb_ pull /sdcard/shot.png "$OUT/$1.png" > /dev/null; then
+    echo "Captured $1"
+  else
+    echo "::warning::Screenshot $1 failed"
+  fi
 }
 
 open_screen() {

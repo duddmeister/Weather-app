@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated weather icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <path android:pathData="M18.84,7.57A9.5,9.5 0,1 0,28.98,20.11A8.17,8.17 0,0 1,18.84,7.57Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="10.5" android:startY="7.5" android:endX="29.5" android:endY="26.5">
+                <item android:offset="0" android:color="#FFF6D8"/>
+                <item android:offset="1" android:color="#E9D79A"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M15.35,29.2A8.55,8.55 0,1 1,32.45,29.2A8.55,8.55 0,1 1,15.35,29.2ZM22.95,20.65A11.4,11.4 0,1 1,45.75,20.65A11.4,11.4 0,1 1,22.95,20.65ZM36.72,28.25A8.07,8.07 0,1 1,52.88,28.25A8.07,8.07 0,1 1,36.72,28.25ZM20.81,26.82H47.41A5.46,5.46 0,0 1,52.88,32.29V32.29A5.46,5.46 0,0 1,47.41,37.75H20.81A5.46,5.46 0,0 1,15.35,32.29V32.29A5.46,5.46 0,0 1,20.81,26.82Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="34.35" android:startY="9.25" android:endX="34.35" android:endY="37.75">
+                <item android:offset="0" android:color="#FFFFFF"/>
+                <item android:offset="1" android:color="#D3DEEA"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M25,46L22.8,53M34,49L31.8,56M43,46L40.8,53"
+        android:strokeColor="#5BC8FF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+</vector>

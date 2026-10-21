@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- Debug-only: renders the home screen widgets with sample data (used by CI screenshots). -->
+        <activity
+            android:name=".WidgetPreviewActivity"
+            android:exported="true"
+            android:label="Widget preview"
+            android:theme="@style/Theme.Nimbus" />
+    </application>
+</manifest>

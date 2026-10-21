@@ -1,0 +1,10 @@
+10-21 22:38:48.766  6239  6274 I Nimbus/RefreshWorker: Background refresh (periodic, io.github.duddmeister.weather.work.RefreshWorker) ok=true attempt=0
+10-21 22:38:50.409  6239  6239 I Nimbus/LocationRepository: Current location: New York
+10-21 22:38:51.075  6239  6239 I Nimbus/WeatherRepository: Updated New York: 14.0°C, 360 hours
+10-21 22:37:54.391  5838  5857 I Nimbus/RefreshWorker: Background refresh (periodic, io.github.duddmeister.weather.work.RefreshWorker) ok=true attempt=0
+10-21 22:38:23.434  5838  5838 I Nimbus/LocationRepository: Current location: New York
+10-21 22:38:24.457  5838  5838 I Nimbus/WeatherRepository: Updated New York: 14.0°C, 360 hours
+10-21 22:39:51.534  6239  6239 I Nimbus/WidgetHost: Pressed refresh on widget 2
+10-21 22:39:51.536  6239  6239 I Nimbus/WidgetHost: Pressed refresh on widget 3
+10-21 22:39:52.271  6239  6279 I Nimbus/WeatherRepository: Updated New York: 14.0°C, 360 hours
+10-21 22:39:52.639  6239  6283 I Nimbus/WeatherRepository: Updated New York: 14.0°C, 360 hours

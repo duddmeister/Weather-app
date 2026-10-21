@@ -96,8 +96,7 @@ class WidgetConfigActivity : ComponentActivity() {
                     if (locationId == null) prefs.remove(WidgetKeys.LOCATION_ID) else prefs[WidgetKeys.LOCATION_ID] = locationId
                 }
                 val provider = AppWidgetManager.getInstance(this@WidgetConfigActivity).getAppWidgetInfo(appWidgetId)?.provider?.className
-                val widget = if (provider == ForecastWidgetReceiver::class.java.name) ForecastWidget() else NowWidget()
-                widget.update(this@WidgetConfigActivity, glanceId)
+                WidgetUpdater.widgetFor(provider).update(this@WidgetConfigActivity, glanceId)
                 // Fetch fresh data for the chosen place without keeping this screen open.
                 container.appScope.launch { container.refresher.refreshBackground() }
             } catch (e: Exception) {

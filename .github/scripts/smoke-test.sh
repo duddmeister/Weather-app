@@ -73,6 +73,18 @@ swipe_up() {
   adb_ shell input swipe 540 1900 540 600 500
 }
 
+# Drags the home page down with the finger held, captures each stage of pull-to-refresh, then lets go.
+pull_to_refresh() {
+  adb_ shell input motionevent DOWN 540 800
+  for y in 860 940 1040 1160 1300 1440 1560; do
+    adb_ shell input motionevent MOVE 540 "$y"
+  done
+  snap 02-pull-release 0.3
+  adb_ shell input motionevent UP 540 1560
+  snap 03-pull-updating 0.2
+  snap 04-pull-done 1
+}
+
 # wait_for_forecast <package>: waits until that app logs its first successful fetch.
 wait_for_forecast() {
   local pid
@@ -113,7 +125,8 @@ walk() {
 
   if [ -n "$capture" ]; then
     snap 01-home 4
-    for i in 2 3 4 5 6; do
+    pull_to_refresh
+    for i in 5 6 7 8 9; do
       swipe_up
       snap "0$i-scroll"
     done
@@ -124,12 +137,12 @@ walk() {
 
   check_emulator "home screen of $package"
   launch "$package" OPEN_SETTINGS
-  if [ -n "$capture" ]; then snap 07-settings 3; swipe_up; snap 08-settings-more; else sleep 3; fi
+  if [ -n "$capture" ]; then snap 10-settings 3; swipe_up; snap 11-settings-more; else sleep 3; fi
 
   launch "$package" OPEN_PLACES
-  if [ -n "$capture" ]; then snap 09-places 3; else sleep 3; fi
+  if [ -n "$capture" ]; then snap 12-places 3; else sleep 3; fi
   adb_ shell input text "Paris"
-  if [ -n "$capture" ]; then snap 10-search 5; else sleep 5; fi
+  if [ -n "$capture" ]; then snap 13-search 5; else sleep 5; fi
   adb_ shell input keyevent KEYCODE_BACK
   adb_ shell input keyevent KEYCODE_BACK
   sleep 1
@@ -207,9 +220,11 @@ adb_ install -r -g "$APK_DIR/debug/app-debug.apk"
 walk "$DEBUG_PKG" capture
 # Widget layouts rendered through Glance with sample data.
 adb_ shell am start -W -n "$DEBUG_PKG/$PKG.WidgetPreviewActivity" > /dev/null
-snap 11-widgets 6
+snap 14-widgets 6
 swipe_up
-snap 12-widgets-more
+snap 15-widgets-more
+swipe_up
+snap 16-widgets-end
 check_emulator "debug build walk"
 adb_ logcat -d > "$OUT/logcat-debug.txt"
 echo "::endgroup::"
@@ -220,11 +235,11 @@ widget_status=0
 adb_ shell appwidget grantbind --package "$DEBUG_PKG" --user 0
 adb_ logcat -c
 adb_ shell am start -W -n "$DEBUG_PKG/$PKG.WidgetHostActivity" > /dev/null
-snap 13-live-widgets 8
+snap 17-live-widgets 8
 adb_ logcat -c
 adb_ shell am start -n "$DEBUG_PKG/$PKG.WidgetHostActivity" -a "$PKG.debug.PRESS_REFRESH" > /dev/null
-snap 14-live-widgets-refreshing 1
-snap 15-live-widgets-refreshed 10
+snap 18-live-widgets-refreshing 1
+snap 19-live-widgets-refreshed 10
 check_emulator "live widgets"
 adb_ logcat -d > "$OUT/logcat-widgets.txt"
 grep -E "Nimbus/(WidgetHost|WeatherRepository|WeatherRefresher|WidgetUpdater)" "$OUT/logcat-widgets.txt" || true

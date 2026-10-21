@@ -26,7 +26,6 @@ import androidx.compose.material.icons.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Straighten
 import androidx.compose.material.icons.rounded.Sync
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,6 +55,7 @@ import io.github.duddmeister.weather.model.TimeFormat
 import io.github.duddmeister.weather.model.WindUnit
 import io.github.duddmeister.weather.ui.components.CardLabel
 import io.github.duddmeister.weather.ui.components.GlassCard
+import io.github.duddmeister.weather.ui.components.PulsingDots
 import io.github.duddmeister.weather.ui.theme.SkyText
 import io.github.duddmeister.weather.update.UpdateState
 
@@ -181,7 +181,7 @@ fun SettingsScreen(
                         }
                         when {
                             !updatesEnabled -> Unit
-                            updateState is UpdateState.Checking -> CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
+                            updateState is UpdateState.Checking -> PulsingDots(Color.White, Modifier.padding(horizontal = 12.dp))
                             updateState is UpdateState.Available || updateState is UpdateState.Failed && updateState.release != null ->
                                 TextButton(onClick = onOpenUpdate) { Text("Update", color = Color.White) }
                             else -> TextButton(onClick = onCheckForUpdates) { Text("Check now", color = Color.White) }

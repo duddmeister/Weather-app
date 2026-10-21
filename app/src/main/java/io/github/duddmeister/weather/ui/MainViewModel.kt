@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -69,6 +70,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private val permissions = MutableStateFlow(currentPermissions())
     private val locating = MutableStateFlow(false)
+
+    /** Places with a refresh the user asked for, including the location fix that comes before the fetch. */
+    private val manualRefreshes = MutableStateFlow<Set<String>>(emptySet())
     private val loaded = flow {
         c.repository.awaitLoaded()
         emit(true)
@@ -79,9 +83,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         c.repository.snapshots,
         c.repository.refreshing,
         c.repository.errors,
-    ) { locations, snapshots, refreshing, errors ->
+        manualRefreshes,
+    ) { locations, snapshots, refreshing, errors, manual ->
         locations.map { location ->
-            LocationPage(location, snapshots[location.id], location.id in refreshing, errors[location.id])
+            val busy = location.id in refreshing || location.id in manual
+            LocationPage(location, snapshots[location.id], busy, errors[location.id])
         }
     }
 
@@ -129,7 +135,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun refresh(page: LocationPage) {
-        viewModelScope.launch { c.refresher.refreshOne(page.location) }
+        val id = page.location.id
+        if (id in manualRefreshes.value) return
+        manualRefreshes.update { it + id }
+        viewModelScope.launch {
+            try {
+                c.refresher.refreshOne(page.location)
+            } finally {
+                manualRefreshes.update { it - id }
+            }
+        }
     }
 
     fun onLocationPermissionResult(granted: Boolean) {

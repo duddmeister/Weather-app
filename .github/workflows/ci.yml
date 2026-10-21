@@ -74,27 +74,12 @@ jobs:
           retention-days: 7
 
   smoke-test:
-    name: Emulator smoke test (${{ matrix.name }})
+    name: Emulator smoke test
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    # Several emulator setups while finding one that stays up on the hosted runners.
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: api34-no-vulkan
-            api-level: 34
-            target: google_apis
-            extra-options: -feature -Vulkan
-          - name: api34-aosp
-            api-level: 34
-            target: default
-            extra-options: ""
-          - name: api31
-            api-level: 31
-            target: google_apis
-            extra-options: ""
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -117,19 +102,38 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         with:
-          api-level: ${{ matrix.api-level }}
-          target: ${{ matrix.target }}
+          # API 34 images crash on the hosted runners' software GPU within a minute; API 31 is stable
+          # and still covers prompt-free self-updates (Android 12+).
+          api-level: 31
+          target: google_apis
           arch: x86_64
           profile: pixel_6
-          # The software-rendered emulator stalls on continuous animation; with animations off the
-          # app's reduce-motion path draws the sky as a still frame.
+          # With animations off, the app's reduce-motion path draws the sky as a still frame.
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot ${{ matrix.extra-options }}
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
           script: bash .github/scripts/smoke-test.sh apks smoke
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: smoke-test-screenshots-${{ matrix.name }}
+          name: smoke-test-screenshots
           path: smoke/
           retention-days: 14
+
+      # Temporary, for reviewing UI changes during development: publishes the thumbnails to a scratch branch.
+      - name: Publish screenshots to the ci-screenshots branch
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -d smoke/thumbs ] || exit 0
+          tmp=$(mktemp -d)
+          cp smoke/thumbs/*.jpg "$tmp"/ 2>/dev/null || true
+          cp smoke/app-log.txt "$tmp"/ 2>/dev/null || true
+          cd "$tmp"
+          git init -q -b ci-screenshots
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Smoke test screenshots for $GITHUB_SHA"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ci-screenshots

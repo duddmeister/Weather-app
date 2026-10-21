@@ -13,6 +13,7 @@ import androidx.glance.appwidget.GlanceRemoteViews
 import androidx.lifecycle.lifecycleScope
 import io.github.duddmeister.weather.ui.SkyKind
 import io.github.duddmeister.weather.ui.WeatherVisuals
+import io.github.duddmeister.weather.widget.ClockWidgetContent
 import io.github.duddmeister.weather.widget.ForecastWidgetContent
 import io.github.duddmeister.weather.widget.NowWidgetContent
 import io.github.duddmeister.weather.widget.WidgetDay
@@ -37,14 +38,16 @@ class WidgetPreviewActivity : ComponentActivity() {
         })
 
         val previews = listOf(
-            Triple("Current · 2×2", DpSize(170.dp, 170.dp), false),
-            Triple("Current · 2×1", DpSize(170.dp, 72.dp), false),
-            Triple("Current · 4×1", DpSize(330.dp, 72.dp), false),
-            Triple("Forecast · 4×2", DpSize(330.dp, 180.dp), true),
-            Triple("Forecast · 4×4", DpSize(330.dp, 330.dp), true),
+            Triple("Clock · 4×2", DpSize(330.dp, 180.dp), Kind.Clock),
+            Triple("Clock · 4×1", DpSize(330.dp, 110.dp), Kind.Clock),
+            Triple("Current · 2×2", DpSize(150.dp, 150.dp), Kind.Now),
+            Triple("Current · 2×1", DpSize(170.dp, 72.dp), Kind.Now),
+            Triple("Current · 4×1", DpSize(330.dp, 72.dp), Kind.Now),
+            Triple("Forecast · 4×2", DpSize(330.dp, 180.dp), Kind.Forecast),
+            Triple("Forecast · 4×4", DpSize(330.dp, 330.dp), Kind.Forecast),
         )
         lifecycleScope.launch {
-            for ((label, size, forecast) in previews) {
+            for ((label, size, kind) in previews) {
                 column.addView(TextView(this@WidgetPreviewActivity).apply {
                     text = label
                     setTextColor(0xFFFFFFFF.toInt())
@@ -53,7 +56,11 @@ class WidgetPreviewActivity : ComponentActivity() {
                 val model = if (label.contains("4×4")) sample(refreshing = true) else sample(refreshing = false)
                 try {
                     val result = GlanceRemoteViews().compose(this@WidgetPreviewActivity, size) {
-                        if (forecast) ForecastWidgetContent(model) else NowWidgetContent(model)
+                        when (kind) {
+                            Kind.Clock -> ClockWidgetContent(model)
+                            Kind.Now -> NowWidgetContent(model)
+                            Kind.Forecast -> ForecastWidgetContent(model)
+                        }
                     }
                     val view = result.remoteViews.apply(this@WidgetPreviewActivity, column)
                     column.addView(view, ViewGroup.LayoutParams((size.width.value * density).toInt(), (size.height.value * density).toInt()))
@@ -66,6 +73,8 @@ class WidgetPreviewActivity : ComponentActivity() {
             }
         }
     }
+
+    private enum class Kind { Clock, Now, Forecast }
 
     private fun sample(refreshing: Boolean) = WidgetModel(
         locationId = "preview",

@@ -71,6 +71,8 @@ data class WidgetModel(
     val days: List<WidgetDay>,
     val refreshing: Boolean,
     val hasData: Boolean,
+    /** 24-hour clock (true), 12-hour (false) or whatever the phone uses (null). */
+    val clock24h: Boolean? = null,
 )
 
 object WidgetModels {
@@ -83,6 +85,11 @@ object WidgetModels {
     }
 
     fun build(inputs: WidgetInputs, locationId: String?, nowMillis: Long, use24h: Boolean, deviceZone: ZoneId = ZoneId.systemDefault()): WidgetModel {
+        val clock24h = when (inputs.settings.timeFormat) {
+            TimeFormat.H24 -> true
+            TimeFormat.H12 -> false
+            TimeFormat.System -> null
+        }
         val location = inputs.locations.firstOrNull { it.id == locationId } ?: inputs.locations.firstOrNull()
         val snapshot = location?.let { inputs.snapshots[it.id] }
         if (location == null || snapshot == null) {
@@ -102,6 +109,7 @@ object WidgetModels {
                 days = emptyList(),
                 refreshing = inputs.refresh.refreshing,
                 hasData = false,
+                clock24h = clock24h,
             )
         }
 
@@ -171,6 +179,7 @@ object WidgetModels {
             days = days,
             refreshing = inputs.refresh.refreshing,
             hasData = true,
+            clock24h = clock24h,
         )
     }
 }

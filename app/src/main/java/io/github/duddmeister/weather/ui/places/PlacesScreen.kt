@@ -31,7 +31,6 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.NearMe
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -69,6 +68,7 @@ import io.github.duddmeister.weather.ui.LocationPage
 import io.github.duddmeister.weather.ui.MainUiState
 import io.github.duddmeister.weather.ui.SearchState
 import io.github.duddmeister.weather.ui.components.GlassCard
+import io.github.duddmeister.weather.ui.components.PulsingDots
 import io.github.duddmeister.weather.ui.components.WeatherIcon
 import io.github.duddmeister.weather.ui.home.rememberUse24h
 import io.github.duddmeister.weather.ui.theme.SkyText
@@ -194,7 +194,7 @@ fun PlacesScreen(
 private fun SearchResults(state: SearchState, padding: PaddingValues, onPick: (GeocodingResult) -> Unit) {
     when (state) {
         SearchState.Idle, SearchState.Searching -> Box(Modifier.fillMaxWidth().padding(padding), contentAlignment = Alignment.TopCenter) {
-            CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
+            PulsingDots(Color.White, Modifier.padding(top = 12.dp), dotSize = 7.dp)
         }
         is SearchState.Failed -> Text(state.message, color = SkyText.Warning, modifier = Modifier.padding(padding))
         is SearchState.Results -> if (state.results.isEmpty()) {
@@ -314,7 +314,7 @@ private fun PlaceCard(
                     }
                 }
             } else if (page.refreshing) {
-                CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
+                PulsingDots(Color.White)
             }
         }
     }

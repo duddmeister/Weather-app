@@ -6,9 +6,9 @@ in-app updates.
 ## Highlights
 
 - **Always current.** Shows *when* the data was fetched ("Updated 2 min ago"). It refreshes
-  whenever you open the app, every 15 minutes in the background (adjustable), and whenever you pull
-  down. Between fetches the temperature follows the forecast timeline, so an hour-old fetch shows the
-  temperature for *now*, not for an hour ago.
+  whenever you open the app, every 5 minutes while it stays open, every 15 minutes in the background
+  (adjustable), and whenever you pull down. Between fetches the temperature follows the forecast
+  timeline, so an hour-old fetch shows the temperature for *now*, not for an hour ago.
 - **Home screen widgets with a refresh button.** A compact "current weather" widget and a forecast
   widget (current + hourly + daily). Both resize, show the time they were updated (or "Offline"), and
   have a ↻ button that fetches fresh data on the spot. Each widget can follow a different place.
@@ -24,7 +24,8 @@ in-app updates.
   precipitation totals, feels-like explanation, humidity & dew point, visibility, pressure trend,
   moon phase, cloud cover, air quality (US or European AQI) and pollen.
 - **Severe weather alerts** (US, from the National Weather Service), with notifications.
-- **Multiple places.** Your location plus any cities you add; swipe between them.
+- **Multiple places.** Your location plus any cities you add; swipe between them. Long-press the
+  app icon for quick **Places** and **Settings** shortcuts.
 - **Your units.** °C/°F, km/h, mph, m/s, knots, mm/in, hPa/inHg/mmHg, km/mi and 12/24-hour time.
   Defaults follow your region.
 - **In-app updates.** Nimbus checks this repository's GitHub Releases. When a new build is published
@@ -39,6 +40,8 @@ in-app updates.
 2. Open the file. If Android asks, allow your browser to install apps.
 3. Open Nimbus and tap **Use my location** (or search for a city).
 4. Add a widget: long-press your home screen → **Widgets** → **Nimbus**.
+5. Optional, for widgets that stay fresh even when the phone is idle: **Settings → Reliable
+   background updates** lets Nimbus refresh on schedule instead of being held back by battery saving.
 
 Later updates arrive in the app: you'll get a notification, or see an **Update available** pill.
 The first in-app update asks you to allow Nimbus to install apps.
@@ -48,8 +51,9 @@ The first in-app update asks you to allow Nimbus to install apps.
 Every push to `main` runs [`.github/workflows/release.yml`](.github/workflows/release.yml). It
 builds a signed APK, runs the unit tests and publishes a GitHub Release named `v1.0.<build>` with
 the APK attached and the commit messages as release notes. Pull requests run
-[`ci.yml`](.github/workflows/ci.yml). It builds, tests, lints, runs the app on an emulator and
-uploads screenshots.
+[`ci.yml`](.github/workflows/ci.yml). It builds, tests and lints, then runs the app on an emulator:
+it opens every screen, uploads screenshots, and updates the installed build to the latest release
+through the app's own updater.
 
 Releases are signed with the key in [`signing/`](signing/README.md). To use a private key instead,
 see that page.

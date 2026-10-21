@@ -83,6 +83,51 @@ walk() {
   sleep 1
 }
 
+# CI builds are numbered below every release, so the installed release build should update itself to
+# the latest GitHub release the same way a phone does: "Update now" → download → verify → install.
+update_to_latest_release() {
+  local repo="${GITHUB_REPOSITORY:-}" auth=() release tag apk_url apksigner have="" want
+  [ -n "$repo" ] || { echo "No repository context; skipping."; return 0; }
+  [ -n "${GH_TOKEN:-}" ] && auth=(-H "Authorization: Bearer $GH_TOKEN")
+  if ! release=$(curl -fsS "${auth[@]}" "https://api.github.com/repos/$repo/releases/latest"); then
+    echo "No published release yet; skipping."
+    return 0
+  fi
+  tag=$(python3 -c 'import json, sys; print(json.load(sys.stdin)["tag_name"])' <<< "$release")
+  apk_url=$(python3 -c 'import json, sys; print(next((a["browser_download_url"] for a in json.load(sys.stdin)["assets"] if a["name"].endswith(".apk")), ""))' <<< "$release")
+  [ -n "$apk_url" ] || { echo "::error::Release $tag has no APK attached"; return 1; }
+
+  # Android only installs an update signed with the same key, so skip if releases use a different one.
+  apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)
+  curl -fsSL -o "$RUNNER_TEMP/latest.apk" "$apk_url"
+  cert() { "$apksigner" verify --print-certs "$1" | grep -m 1 "SHA-256"; }
+  if [ "$(cert "$RUNNER_TEMP/latest.apk")" != "$(cert "$APK_DIR/release/app-release.apk")" ]; then
+    echo "::notice::$tag is signed with a different key than CI builds; skipping the update test."
+    return 0
+  fi
+
+  want="${tag#v}"
+  adb_ shell appops set "$PKG" REQUEST_INSTALL_PACKAGES allow
+  adb_ logcat -c
+  adb_ shell am start -n "$PKG/$PKG.MainActivity" -a "$PKG.action.INSTALL_UPDATE" > /dev/null
+  for _ in $(seq 1 60); do
+    have=$(adb_ shell dumpsys package "$PKG" | grep -m 1 -o "versionName=[^ ]*" | cut -d= -f2 | tr -d '\r')
+    [ "$have" = "$want" ] && break
+    sleep 3
+  done
+  sleep 5 # Let the updated app handle MY_PACKAGE_REPLACED before the logs are checked.
+  adb_ logcat -d > "$OUT/logcat-update.txt"
+  grep -E "Nimbus/UpdateManager|Nimbus/ApkInstaller" "$OUT/logcat-update.txt" || true
+  if [ "$have" = "$want" ]; then
+    echo "Updated in place from the CI build to $want."
+  elif grep -q -E "HTTP (403|429) for https://api.github.com" "$OUT/logcat-update.txt" "$OUT/logcat-release.txt"; then
+    echo "::warning::GitHub rate-limited the emulator's update check; the update test was inconclusive."
+  else
+    echo "::error::The in-app update to $tag didn't install (installed version: ${have:-unknown})"
+    return 1
+  fi
+}
+
 adb_ wait-for-device
 adb_ shell settings put secure location_mode 3 > /dev/null 2>&1 || true
 adb_ shell cmd location set-location-enabled true > /dev/null 2>&1 || true
@@ -105,12 +150,17 @@ snap 12-widgets-more
 adb_ logcat -d > "$OUT/logcat-debug.txt"
 echo "::endgroup::"
 
+echo "::group::In-app update to the latest release"
+update_to_latest_release
+update_status=$?
+echo "::endgroup::"
+
 cat "$OUT"/logcat-*.txt > "$OUT/logcat.txt"
 grep -E "Nimbus/|AndroidRuntime|FATAL EXCEPTION|ANR in" "$OUT/logcat.txt" > "$OUT/app-log.txt" || true
 echo "----- App log -----"
 tail -n 80 "$OUT/app-log.txt"
 
-status=0
+status=$update_status
 if grep -E "FATAL EXCEPTION" -A 40 "$OUT/logcat.txt" | grep -q -E "Process: $PKG"; then
   echo "::error::The app crashed during the smoke test"
   grep -E "FATAL EXCEPTION" -A 40 "$OUT/logcat.txt"

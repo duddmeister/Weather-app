@@ -91,7 +91,7 @@ jobs:
             if [ -n "$PREVIOUS" ]; then
               git log --no-merges --pretty='- %s' "$PREVIOUS"..HEAD
             else
-              git log --no-merges --pretty='- %s' -n 30
+              echo "- First release of Nimbus."
             fi
             echo
             echo "## Install"

@@ -156,10 +156,15 @@ class UpdateManager(
         )
     }
 
-    /** Downloads, verifies and installs [release] (or the currently available one). */
+    /** Downloads, verifies and installs [release] (or the currently available one, checking first if needed). */
     fun startUpdate(release: ReleaseInfo? = null) {
-        val target = release ?: availableRelease() ?: return
         if (updateJob?.isActive == true) return
+        val target = release ?: availableRelease()
+        if (target == null) {
+            // "Update now" on the notification may start a fresh process that hasn't checked yet.
+            scope.launch { check()?.let { startUpdate(it) } }
+            return
+        }
         if (!installer.canRequestInstalls()) {
             _needsInstallPermission.value = target
             return

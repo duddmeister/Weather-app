@@ -47,7 +47,8 @@ abstract class NimbusWidget : GlanceAppWidget() {
         provideContent {
             val current by inputs.collectAsState(initial)
             val locationId = currentState<Preferences>()[WidgetKeys.LOCATION_ID]
-            val model = WidgetModels.build(LocalContext.current, current, locationId, System.currentTimeMillis())
+            val context = LocalContext.current
+            val model = WidgetModels.build(current, locationId, System.currentTimeMillis(), WidgetModels.use24h(context, current.settings))
             Content(model)
         }
     }

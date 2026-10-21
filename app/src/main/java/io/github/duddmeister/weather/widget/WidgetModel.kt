@@ -76,7 +76,13 @@ data class WidgetModel(
 object WidgetModels {
     private const val STALE_AFTER_MILLIS = 60 * 60 * 1000L
 
-    fun build(context: Context, inputs: WidgetInputs, locationId: String?, nowMillis: Long): WidgetModel {
+    fun use24h(context: Context, settings: AppSettings): Boolean = when (settings.timeFormat) {
+        TimeFormat.H24 -> true
+        TimeFormat.H12 -> false
+        TimeFormat.System -> DateFormat.is24HourFormat(context)
+    }
+
+    fun build(inputs: WidgetInputs, locationId: String?, nowMillis: Long, use24h: Boolean, deviceZone: ZoneId = ZoneId.systemDefault()): WidgetModel {
         val location = inputs.locations.firstOrNull { it.id == locationId } ?: inputs.locations.firstOrNull()
         val snapshot = location?.let { inputs.snapshots[it.id] }
         if (location == null || snapshot == null) {
@@ -100,15 +106,10 @@ object WidgetModels {
         }
 
         val units = inputs.settings.units
-        val use24h = when (inputs.settings.timeFormat) {
-            TimeFormat.H24 -> true
-            TimeFormat.H12 -> false
-            TimeFormat.System -> DateFormat.is24HourFormat(context)
-        }
         val now = snapshot.conditionsAt(nowMillis)
         val today = snapshot.today(nowMillis)
         val locationTime = TimeText(snapshot.zoneId(), use24h)
-        val deviceTime = TimeText(ZoneId.systemDefault(), use24h)
+        val deviceTime = TimeText(deviceZone, use24h)
 
         val failedSinceData = inputs.refresh.lastFailureAt > snapshot.fetchedAt
         val stale = nowMillis - snapshot.fetchedAt > STALE_AFTER_MILLIS

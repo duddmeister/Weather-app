@@ -15,7 +15,8 @@ shot() {
   echo "Captured $1"
 }
 
-# Taps the first on-screen element whose content description or text matches $1.
+# Taps the first on-screen element whose content description or text matches $1
+# (or whose class matches, when $1 is "class:<name>").
 tap() {
   adb shell uiautomator dump /sdcard/ui.xml > /dev/null 2>&1
   adb pull /sdcard/ui.xml "$OUT/ui.xml" > /dev/null 2>&1
@@ -23,8 +24,13 @@ tap() {
   bounds=$(python3 - "$OUT/ui.xml" "$1" <<'PY'
 import re, sys, xml.etree.ElementTree as ET
 root = ET.parse(sys.argv[1]).getroot()
+want = sys.argv[2]
 for node in root.iter("node"):
-    if sys.argv[2] in (node.get("content-desc"), node.get("text")):
+    if want.startswith("class:"):
+        hit = node.get("class") == want[len("class:"):]
+    else:
+        hit = want in (node.get("content-desc"), node.get("text"))
+    if hit:
         x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.get("bounds")))
         print((x1 + x2) // 2, (y1 + y2) // 2)
         break
@@ -67,7 +73,7 @@ tap "Settings" && shot 07-settings 2
 adb shell input keyevent KEYCODE_BACK
 sleep 1
 tap "Places" && shot 08-places 2
-adb shell input text "Paris"
+tap "class:android.widget.EditText" && adb shell input text "Paris"
 shot 09-search 4
 adb shell input keyevent KEYCODE_BACK
 adb shell input keyevent KEYCODE_BACK
@@ -83,8 +89,9 @@ if [ -f "$APK_DIR/debug/app-debug.apk" ]; then
 fi
 
 adb logcat -d > "$OUT/logcat.txt"
+grep -E "Nimbus/|AndroidRuntime|FATAL EXCEPTION|ANR in" "$OUT/logcat.txt" > "$OUT/app-log.txt" || true
 echo "----- App log -----"
-grep -E "Nimbus/" "$OUT/logcat.txt" | tail -n 60 || true
+tail -n 80 "$OUT/app-log.txt"
 
 status=0
 if grep -E "FATAL EXCEPTION" -A 40 "$OUT/logcat.txt" | grep -q -E "Process: $PKG"; then

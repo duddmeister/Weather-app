@@ -153,6 +153,28 @@ snap 12-widgets-more
 adb_ logcat -d > "$OUT/logcat-debug.txt"
 echo "::endgroup::"
 
+# The real widgets, hosted like a launcher would, showing live data; then their refresh button is pressed.
+echo "::group::Live widgets and the refresh button"
+widget_status=0
+adb_ shell appwidget grantbind --package "$DEBUG_PKG" --user 0
+adb_ logcat -c
+adb_ shell am start -W -n "$DEBUG_PKG/$PKG.WidgetHostActivity" > /dev/null
+snap 13-live-widgets 8
+adb_ logcat -c
+adb_ shell am start -n "$DEBUG_PKG/$PKG.WidgetHostActivity" -a "$PKG.debug.PRESS_REFRESH" > /dev/null
+snap 14-live-widgets-refreshing 1
+snap 15-live-widgets-refreshed 10
+adb_ logcat -d > "$OUT/logcat-widgets.txt"
+grep -E "Nimbus/(WidgetHost|WeatherRepository|WeatherRefresher|WidgetUpdater)" "$OUT/logcat-widgets.txt" || true
+if ! grep -q "Nimbus/WidgetHost: Pressed refresh" "$OUT/logcat-widgets.txt"; then
+  echo "::error::Couldn't find the widgets' refresh button"
+  widget_status=1
+elif ! grep -q "Nimbus/WeatherRepository: Updated" "$OUT/logcat-widgets.txt"; then
+  echo "::error::Pressing the widget refresh button didn't fetch new weather"
+  widget_status=1
+fi
+echo "::endgroup::"
+
 echo "::group::In-app update to the latest release"
 update_to_latest_release
 update_status=$?
@@ -163,7 +185,7 @@ grep -E "Nimbus/|AndroidRuntime|FATAL EXCEPTION|ANR in" "$OUT/logcat.txt" > "$OU
 echo "----- App log -----"
 tail -n 80 "$OUT/app-log.txt"
 
-status=$update_status
+status=$((update_status || widget_status))
 if grep -E "FATAL EXCEPTION" -A 40 "$OUT/logcat.txt" | grep -q -E "Process: $PKG"; then
   echo "::error::The app crashed during the smoke test"
   grep -E "FATAL EXCEPTION" -A 40 "$OUT/logcat.txt"

@@ -69,6 +69,7 @@ import io.github.duddmeister.weather.ui.components.LocalSkyPalette
 import io.github.duddmeister.weather.ui.components.PulsingDots
 import io.github.duddmeister.weather.ui.theme.SkyText
 import io.github.duddmeister.weather.update.UpdateState
+import kotlin.math.absoluteValue
 
 @Composable
 fun HomeScreen(
@@ -97,13 +98,24 @@ fun HomeScreen(
                     key = { index -> state.pages.getOrNull(index)?.location?.id ?: index },
                 ) { index ->
                     val page = state.pages.getOrNull(index) ?: return@HorizontalPager
-                    WeatherPage(
-                        page = page,
-                        settings = state.settings,
-                        nowMillis = nowMillis,
-                        listState = listStateFor(page.location.id),
-                        onRefresh = { onRefresh(page) },
-                    )
+                    Box(
+                        Modifier.graphicsLayer {
+                            // Places recede slightly as they're swiped away and come forward as they arrive.
+                            val away = ((pagerState.currentPage - index) + pagerState.currentPageOffsetFraction).absoluteValue.coerceIn(0f, 1f)
+                            alpha = 1f - 0.4f * away
+                            val scale = 1f - 0.06f * away
+                            scaleX = scale
+                            scaleY = scale
+                        },
+                    ) {
+                        WeatherPage(
+                            page = page,
+                            settings = state.settings,
+                            nowMillis = nowMillis,
+                            listState = listStateFor(page.location.id),
+                            onRefresh = { onRefresh(page) },
+                        )
+                    }
                 }
                 val currentPage = state.pages.getOrNull(pagerState.currentPage)
                 val listState = currentPage?.let { listStateFor(it.location.id) }

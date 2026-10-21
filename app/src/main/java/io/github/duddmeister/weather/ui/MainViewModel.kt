@@ -3,9 +3,9 @@ package io.github.duddmeister.weather.ui
 import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Intent
-import android.net.Uri
 import android.os.PowerManager
 import android.provider.Settings
+import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.duddmeister.weather.container
@@ -225,12 +225,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     @SuppressLint("BatteryLife") // Opt-in from Settings, explained in the UI; this app isn't on Play.
     fun batteryExemptionIntent() = Intent(
         Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-        Uri.parse("package:" + getApplication<Application>().packageName),
+        "package:${getApplication<Application>().packageName}".toUri(),
     )
 
     fun installPermissionIntent() = Intent(
         Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-        Uri.parse("package:" + getApplication<Application>().packageName),
+        "package:${getApplication<Application>().packageName}".toUri(),
     )
 
     fun canInstallPackages(): Boolean = getApplication<Application>().packageManager.canRequestPackageInstalls()

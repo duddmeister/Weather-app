@@ -6,9 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageInstaller
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
-import android.provider.Settings
 import androidx.core.content.pm.PackageInfoCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
@@ -35,9 +33,6 @@ class ApkInstaller(
 
     /** Whether the user has allowed this app to install packages ("Install unknown apps"). */
     fun canRequestInstalls(): Boolean = context.packageManager.canRequestPackageInstalls()
-
-    fun installPermissionSettingsIntent(): Intent =
-        Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
 
     suspend fun download(release: ReleaseInfo, onProgress: (Float?) -> Unit): File = runInterruptible(Dispatchers.IO) {
         val directory = File(context.cacheDir, "updates").apply { mkdirs() }

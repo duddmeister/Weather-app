@@ -109,7 +109,7 @@ class AppContainer(private val app: Application) {
     private fun publishShortcuts() {
         runCatching {
             val existing = ShortcutManagerCompat.getDynamicShortcuts(app).map { it.id }.toSet()
-            if (existing.containsAll(listOf(SHORTCUT_PLACES, SHORTCUT_SETTINGS))) return
+            if (existing.containsAll(listOf(MainActivity.SHORTCUT_PLACES, MainActivity.SHORTCUT_SETTINGS))) return
             fun shortcut(id: String, action: String, short: Int, long: Int, icon: Int) =
                 ShortcutInfoCompat.Builder(app, id)
                     .setShortLabel(app.getString(short))
@@ -120,15 +120,10 @@ class AppContainer(private val app: Application) {
             ShortcutManagerCompat.setDynamicShortcuts(
                 app,
                 listOf(
-                    shortcut(SHORTCUT_PLACES, MainActivity.ACTION_OPEN_PLACES, R.string.shortcut_places_short, R.string.shortcut_places_long, R.drawable.ic_shortcut_search),
-                    shortcut(SHORTCUT_SETTINGS, MainActivity.ACTION_OPEN_SETTINGS, R.string.shortcut_settings_short, R.string.shortcut_settings_long, R.drawable.ic_shortcut_settings),
+                    shortcut(MainActivity.SHORTCUT_PLACES, MainActivity.ACTION_OPEN_PLACES, R.string.shortcut_places_short, R.string.shortcut_places_long, R.drawable.ic_shortcut_search),
+                    shortcut(MainActivity.SHORTCUT_SETTINGS, MainActivity.ACTION_OPEN_SETTINGS, R.string.shortcut_settings_short, R.string.shortcut_settings_long, R.drawable.ic_shortcut_settings),
                 ),
             )
         }.onFailure { AppLog.w("AppContainer", "Couldn't publish shortcuts", it) }
-    }
-
-    private companion object {
-        const val SHORTCUT_PLACES = "places"
-        const val SHORTCUT_SETTINGS = "settings"
     }
 }

@@ -316,10 +316,14 @@ fun ClockWidgetContent(model: WidgetModel) {
     // Text is sized in sp, so a larger font setting needs more height for the same layout.
     val fontScale = fontScaleOf(LocalContext.current)
     val height = size.height / fontScale
+    if (height < 115.dp) {
+        ClockBar(model, height, size.width)
+        return
+    }
     // Compact: small clock. Medium: big clock. Tall: clock plus the next hours. Roomy: both, bigger.
     val roomy = height >= 200.dp
     val tall = height >= 160.dp
-    val compact = height < 125.dp
+    val compact = height < 130.dp
     val tight = tall && !roomy
     WidgetFrame(model, horizontal = 16.dp, vertical = if (tight) 8.dp else 10.dp) {
         Column(modifier = GlanceModifier.fillMaxSize()) {
@@ -367,6 +371,46 @@ fun ClockWidgetContent(model: WidgetModel) {
     }
 }
 
+/** One row (a 4x1): time and date, the weather, and the refresh button with when it last updated. */
+@Composable
+private fun ClockBar(model: WidgetModel, height: Dp, width: Dp) {
+    val roomy = height >= 70.dp
+    val showDate = height >= 55.dp
+    WidgetFrame(model, horizontal = 16.dp, vertical = if (roomy) 6.dp else 4.dp) {
+        Row(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+            ClockFace(
+                model = model,
+                timeSize = if (roomy) 36.sp else 28.sp,
+                dateSize = if (roomy) 12.sp else 11.sp,
+                longDate = false,
+                showDate = showDate,
+                modifier = GlanceModifier.defaultWeight(),
+            )
+            Column(horizontalAlignment = Alignment.End) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    WeatherIcon(model.icon, if (roomy) 30.dp else 26.dp, model.condition)
+                    Spacer(GlanceModifier.width(4.dp))
+                    Text(text = model.temperature, style = text(if (roomy) 26.sp else 22.sp, family = Light), maxLines = 1)
+                }
+                if (showDate && width >= 250.dp) {
+                    Text(text = model.highLow.ifBlank { model.condition }, style = text(11.sp, WhiteSecondary, align = TextAlign.End), maxLines = 1)
+                }
+            }
+            Spacer(GlanceModifier.width(12.dp))
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                RefreshButton(model, 26.dp)
+                if (roomy) {
+                    Text(
+                        text = model.status.removePrefix("Updated "),
+                        style = text(9.sp, if (model.statusIsWarning) Warning else WhiteTertiary),
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}
+
 /**
  * The system font scale, clamped to what the layouts plan for. Glance has no LocalConfiguration, so it
  * comes from the context; widgets re-render on every data update, which picks up a changed setting.
@@ -379,7 +423,14 @@ private fun fontScaleOf(context: Context): Float = context.resources.configurati
  * them opens the clock app's alarms.
  */
 @Composable
-private fun ClockFace(model: WidgetModel, timeSize: TextUnit, dateSize: TextUnit, longDate: Boolean, modifier: GlanceModifier) {
+private fun ClockFace(
+    model: WidgetModel,
+    timeSize: TextUnit,
+    dateSize: TextUnit,
+    longDate: Boolean,
+    modifier: GlanceModifier,
+    showDate: Boolean = true,
+) {
     val context = LocalContext.current
     val alarms = PendingIntent.getActivity(
         context,
@@ -406,7 +457,7 @@ private fun ClockFace(model: WidgetModel, timeSize: TextUnit, dateSize: TextUnit
     }
     Column(modifier = modifier) {
         AndroidRemoteViews(time)
-        AndroidRemoteViews(date)
+        if (showDate) AndroidRemoteViews(date)
     }
 }
 

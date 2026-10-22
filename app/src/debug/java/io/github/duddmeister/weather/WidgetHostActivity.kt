@@ -15,6 +15,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import io.github.duddmeister.weather.core.AppLog
+import io.github.duddmeister.weather.widget.ClockBarWidgetReceiver
 import io.github.duddmeister.weather.widget.ClockWidgetReceiver
 import io.github.duddmeister.weather.widget.ForecastWidgetReceiver
 import io.github.duddmeister.weather.widget.NowWidgetReceiver
@@ -47,8 +48,9 @@ class WidgetHostActivity : ComponentActivity() {
         val specs = listOf(
             // The host view pads ~8dp a side, so this shows the clock at about 298x171dp, a real 4x2.
             Triple("Clock & weather · live", ClockWidgetReceiver::class.java, SizeF(314f, 187f)),
+            Triple("Clock & weather (slim) · live", ClockBarWidgetReceiver::class.java, SizeF(314f, 98f)),
             Triple("Current weather · live", NowWidgetReceiver::class.java, SizeF(150f, 150f)),
-            Triple("Weather forecast · live", ForecastWidgetReceiver::class.java, SizeF(330f, 300f)),
+            Triple("Weather forecast · live", ForecastWidgetReceiver::class.java, SizeF(330f, 270f)),
         )
         for ((label, receiver, size) in specs) {
             column.addView(TextView(this).apply {

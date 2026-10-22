@@ -86,8 +86,23 @@ class ForecastWidget : NimbusWidget() {
 class ClockWidget : NimbusWidget() {
     override val sizeMode: SizeMode = SizeMode.Responsive(
         listOf(180.dp, 250.dp, 300.dp).flatMap { width ->
-            listOf(100.dp, 125.dp, 160.dp, 200.dp).map { height -> DpSize(width, height) }
+            listOf(100.dp, 130.dp, 160.dp, 200.dp).map { height -> DpSize(width, height) }
         }.toSet(),
+    )
+
+    @Composable
+    override fun Content(model: WidgetModel) = ClockWidgetContent(model)
+}
+
+/** The same clock, placed as a single 4x1 row by default; taller sizes get the full layouts. */
+class ClockBarWidget : NimbusWidget() {
+    override val sizeMode: SizeMode = SizeMode.Responsive(
+        listOf(180.dp, 250.dp, 300.dp).flatMap { width ->
+            listOf(40.dp, 55.dp, 70.dp).map { height -> DpSize(width, height) }
+        }.toSet() +
+            listOf(250.dp, 300.dp).flatMap { width ->
+                listOf(115.dp, 130.dp, 160.dp).map { height -> DpSize(width, height) }
+            },
     )
 
     @Composable
@@ -121,6 +136,15 @@ class ClockWidgetReceiver : GlanceAppWidgetReceiver() {
     }
 }
 
+class ClockBarWidgetReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = ClockBarWidget()
+
+    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        super.onUpdate(context, appWidgetManager, appWidgetIds)
+        WidgetUpdater.refreshIfStale(context)
+    }
+}
+
 /** The widget reload button. */
 class RefreshAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
@@ -135,12 +159,13 @@ object WidgetUpdater {
     private const val TAG = "WidgetUpdater"
     private const val STALE_MILLIS = 20 * 60 * 1000L
 
-    private fun allWidgets(): List<NimbusWidget> = listOf(NowWidget(), ForecastWidget(), ClockWidget())
+    private fun allWidgets(): List<NimbusWidget> = listOf(NowWidget(), ForecastWidget(), ClockWidget(), ClockBarWidget())
 
     /** The widget behind an AppWidget provider (receiver) class. */
     fun widgetFor(providerClassName: String?): NimbusWidget = when (providerClassName) {
         ForecastWidgetReceiver::class.java.name -> ForecastWidget()
         ClockWidgetReceiver::class.java.name -> ClockWidget()
+        ClockBarWidgetReceiver::class.java.name -> ClockBarWidget()
         else -> NowWidget()
     }
 
@@ -161,7 +186,8 @@ object WidgetUpdater {
         val manager = GlanceAppWidgetManager(context)
         val ids = manager.getGlanceIds(NowWidget::class.java) +
             manager.getGlanceIds(ForecastWidget::class.java) +
-            manager.getGlanceIds(ClockWidget::class.java)
+            manager.getGlanceIds(ClockWidget::class.java) +
+            manager.getGlanceIds(ClockBarWidget::class.java)
         return ids.mapNotNull { id ->
             runCatching { getAppWidgetState(context, PreferencesGlanceStateDefinition, id)[WidgetKeys.LOCATION_ID] }.getOrNull()
         }.toSet()

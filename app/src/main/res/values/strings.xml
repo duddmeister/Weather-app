@@ -6,6 +6,8 @@
     <string name="widget_forecast_label">Weather forecast</string>
     <string name="widget_forecast_description">Current conditions plus the hourly and daily forecast, with a one-tap refresh button</string>
     <string name="widget_clock_label">Clock &amp; weather</string>
+    <string name="widget_clock_bar_label">Clock &amp; weather (slim)</string>
+    <string name="widget_clock_bar_description">A one-row clock and date with the weather right now and a one-tap refresh button</string>
     <string name="widget_clock_description">A big clock and date with the weather right now and over the next hours, with a one-tap refresh button</string>
     <string name="shortcut_places_short">Search places</string>
     <string name="shortcut_places_long">Search for a place</string>

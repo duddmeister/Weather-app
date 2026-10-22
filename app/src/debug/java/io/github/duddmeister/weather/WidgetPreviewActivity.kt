@@ -11,14 +11,19 @@ import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
 import androidx.glance.appwidget.GlanceRemoteViews
 import androidx.lifecycle.lifecycleScope
+import io.github.duddmeister.weather.domain.conditionsAt
+import io.github.duddmeister.weather.model.CurrentConditions
+import io.github.duddmeister.weather.model.WeatherSnapshot
 import io.github.duddmeister.weather.ui.SkyKind
 import io.github.duddmeister.weather.ui.WeatherVisuals
+import io.github.duddmeister.weather.ui.sky.SkyScenes
 import io.github.duddmeister.weather.widget.ClockWidgetContent
 import io.github.duddmeister.weather.widget.ForecastWidgetContent
 import io.github.duddmeister.weather.widget.NowWidgetContent
 import io.github.duddmeister.weather.widget.WidgetDay
 import io.github.duddmeister.weather.widget.WidgetHour
 import io.github.duddmeister.weather.widget.WidgetModel
+import io.github.duddmeister.weather.widget.WidgetSky
 import kotlinx.coroutines.launch
 
 /** Debug-only gallery of the widget layouts at common sizes, rendered by Glance into real RemoteViews. */
@@ -37,29 +42,31 @@ class WidgetPreviewActivity : ComponentActivity() {
             addView(column)
         })
 
+        // Each layout under a different sky, so one pass shows every effect at a real size.
         val previews = listOf(
-            Triple("Clock (slim) · 4×1", DpSize(298.dp, 82.dp), Kind.Clock),
-            Triple("Clock (slim) · short row", DpSize(330.dp, 60.dp), Kind.Clock),
-            Triple("Clock · 4×2 (phone with large display size)", DpSize(298.dp, 171.dp), Kind.Clock),
-            Triple("Clock · 4×2", DpSize(340.dp, 205.dp), Kind.Clock),
-            Triple("Clock · 4×1", DpSize(330.dp, 110.dp), Kind.Clock),
-            Triple("Current · 2×2", DpSize(150.dp, 150.dp), Kind.Now),
-            Triple("Current · 2×1", DpSize(170.dp, 72.dp), Kind.Now),
-            Triple("Current · 4×1", DpSize(330.dp, 72.dp), Kind.Now),
-            Triple("Forecast · 4×2", DpSize(330.dp, 180.dp), Kind.Forecast),
-            Triple("Forecast · 4×4", DpSize(330.dp, 330.dp), Kind.Forecast),
+            Preview("Clock (slim) · 4×1 · clear night", DpSize(298.dp, 82.dp), Kind.Clock, code = 0, isDay = false),
+            Preview("Clock (slim) · short row · rain", DpSize(330.dp, 60.dp), Kind.Clock, code = 63, isDay = true),
+            Preview("Clock · 4×2 (large display size) · partly cloudy night", DpSize(298.dp, 171.dp), Kind.Clock, code = 2, isDay = false),
+            Preview("Clock · 4×2 · thunderstorm", DpSize(340.dp, 205.dp), Kind.Clock, code = 95, isDay = true),
+            Preview("Clock · 4×1 · snow", DpSize(330.dp, 110.dp), Kind.Clock, code = 73, isDay = true),
+            Preview("Current · 2×2 · sunny", DpSize(150.dp, 150.dp), Kind.Now, code = 0, isDay = true),
+            Preview("Current · 2×1 · fog", DpSize(170.dp, 72.dp), Kind.Now, code = 45, isDay = true),
+            Preview("Current · 4×1 · heavy rain at night", DpSize(330.dp, 72.dp), Kind.Now, code = 65, isDay = false),
+            Preview("Forecast · 4×2 · partly cloudy", DpSize(330.dp, 180.dp), Kind.Forecast, code = 2, isDay = true),
+            Preview("Forecast · 4×4 · cloudy night, updating", DpSize(330.dp, 330.dp), Kind.Forecast, code = 3, isDay = false, refreshing = true),
         )
         lifecycleScope.launch {
-            for ((label, size, kind) in previews) {
+            for (preview in previews) {
+                val size = preview.size
                 column.addView(TextView(this@WidgetPreviewActivity).apply {
-                    text = label
+                    text = preview.label
                     setTextColor(0xFFFFFFFF.toInt())
                     setPadding(0, padding, 0, padding / 2)
                 })
-                val model = if (label.contains("4×4")) sample(refreshing = true) else sample(refreshing = false)
+                val model = sample(preview)
                 try {
                     val result = GlanceRemoteViews().compose(this@WidgetPreviewActivity, size) {
-                        when (kind) {
+                        when (preview.kind) {
                             Kind.Clock -> ClockWidgetContent(model)
                             Kind.Now -> NowWidgetContent(model)
                             Kind.Forecast -> ForecastWidgetContent(model)
@@ -78,6 +85,30 @@ class WidgetPreviewActivity : ComponentActivity() {
     }
 
     private enum class Kind { Clock, Now, Forecast }
+
+    /** A layout at [size] showing WMO weather [code], by day or night. */
+    private data class Preview(val label: String, val size: DpSize, val kind: Kind, val code: Int, val isDay: Boolean, val refreshing: Boolean = false)
+
+    private fun sample(preview: Preview): WidgetModel {
+        // The sky comes from the same scene the app and the real widgets use.
+        val nowMillis = System.currentTimeMillis()
+        val snapshot = WeatherSnapshot(
+            locationId = "preview",
+            latitude = 40.71,
+            longitude = -74.01,
+            timezone = "UTC",
+            fetchedAt = nowMillis,
+            current = CurrentConditions(time = nowMillis / 1000, temperature = 18.0, weatherCode = preview.code, isDay = preview.isDay),
+        )
+        val now = snapshot.conditionsAt(nowMillis)
+        val scene = SkyScenes.forConditions(snapshot, now, nowMillis)
+        return sample(preview.refreshing).copy(
+            condition = now.condition.label(now.isDay),
+            icon = WeatherVisuals.icon(now.weatherCode, now.isDay),
+            background = WeatherVisuals.widgetBackground(scene.kind),
+            sky = WidgetSky.of(scene),
+        )
+    }
 
     private fun sample(refreshing: Boolean) = WidgetModel(
         locationId = "preview",

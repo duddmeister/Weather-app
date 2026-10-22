@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.provider.AlarmClock
 import android.text.format.DateFormat
 import android.util.TypedValue
@@ -75,10 +76,25 @@ private fun WidgetFrame(model: WidgetModel, horizontal: Dp = 14.dp, vertical: Dp
             .appWidgetBackground()
             .background(ImageProvider(model.background))
             .cornerRadius(24.dp)
-            .clickable(actionStartActivity(open))
-            .padding(horizontal = horizontal, vertical = vertical),
+            .clickable(actionStartActivity(open)),
     ) {
-        content()
+        // Launchers clip a widget's children to its rounded corners only from Android 12.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) SkyLayers(model.sky)
+        Box(modifier = GlanceModifier.fillMaxSize().padding(horizontal = horizontal, vertical = vertical)) {
+            content()
+        }
+    }
+}
+
+@Composable
+private fun SkyLayers(sky: WidgetSky) {
+    sky.glow?.let { glow ->
+        Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) {
+            Image(ImageProvider(glow), contentDescription = null, modifier = GlanceModifier.size(180.dp))
+        }
+    }
+    for (layer in sky.layers) {
+        Image(ImageProvider(layer), contentDescription = null, modifier = GlanceModifier.fillMaxSize(), contentScale = ContentScale.Crop)
     }
 }
 

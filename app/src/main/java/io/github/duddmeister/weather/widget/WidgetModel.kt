@@ -21,6 +21,7 @@ import io.github.duddmeister.weather.model.Units
 import io.github.duddmeister.weather.model.WeatherSnapshot
 import io.github.duddmeister.weather.ui.SkyKind
 import io.github.duddmeister.weather.ui.WeatherVisuals
+import io.github.duddmeister.weather.ui.sky.SkyScenes
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.time.LocalDate
@@ -73,6 +74,8 @@ data class WidgetModel(
     val hasData: Boolean,
     /** 24-hour clock (true), 12-hour (false) or whatever the phone uses (null). */
     val clock24h: Boolean? = null,
+    /** Stars, clouds, rain and the like, drawn over [background]. */
+    val sky: WidgetSky = WidgetSky.None,
 )
 
 object WidgetModels {
@@ -115,6 +118,7 @@ object WidgetModels {
 
         val units = inputs.settings.units
         val now = snapshot.conditionsAt(nowMillis)
+        val scene = SkyScenes.forConditions(snapshot, now, nowMillis)
         val today = snapshot.today(nowMillis)
         val locationTime = TimeText(snapshot.zoneId(), use24h)
         val deviceTime = TimeText(deviceZone, use24h)
@@ -174,12 +178,13 @@ object WidgetModels {
             feelsLike = now.apparentTemperature?.let { "Feels like ${Units.formatTemperature(it, units.temperature)}" },
             status = status,
             statusIsWarning = failedSinceData || stale,
-            background = WeatherVisuals.widgetBackground(WeatherVisuals.skyKind(snapshot, now, nowMillis)),
+            background = WeatherVisuals.widgetBackground(scene.kind),
             hours = hours,
             days = days,
             refreshing = inputs.refresh.refreshing,
             hasData = true,
             clock24h = clock24h,
+            sky = WidgetSky.of(scene),
         )
     }
 }

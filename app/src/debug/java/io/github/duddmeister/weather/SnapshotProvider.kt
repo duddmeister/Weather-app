@@ -12,6 +12,10 @@ import android.database.Cursor
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import android.view.PixelCopy
 import androidx.core.content.ContextCompat
 import androidx.core.view.drawToBitmap
 import java.io.File
@@ -19,7 +23,7 @@ import java.lang.ref.WeakReference
 
 /**
  * Debug-only: saves the visible screen as a PNG on request, so CI can show what the UI looks like.
- * The view hierarchy is drawn in software, which works on emulators where `screencap` hangs.
+ * It copies the app's own window, which works on emulators where `screencap` hangs.
  *
  *   adb shell am broadcast -p <package> -a <package>.SNAPSHOT --es name home
  *   adb exec-out run-as <package> cat files/snapshots/home.png > home.png
@@ -49,20 +53,67 @@ class SnapshotProvider : ContentProvider() {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 val name = intent.getStringExtra("name") ?: "snapshot"
-                // `am broadcast` prints this, so the caller knows whether the file exists.
-                resultData = runCatching { save(name) }.getOrElse { "failed: $it" }
+                val activity = resumed?.get()
+                if (activity == null) {
+                    resultData = "failed: no visible activity"
+                    return
+                }
+                // `am broadcast` prints the result data, so the caller knows whether the file exists.
+                val pending = goAsync()
+                capture(activity) { bitmap ->
+                    pending.resultData = runCatching { save(activity, name, bitmap()) }.getOrElse { "failed: $it" }
+                    pending.finish()
+                }
             }
         }
         ContextCompat.registerReceiver(app, receiver, IntentFilter("${app.packageName}.SNAPSHOT"), ContextCompat.RECEIVER_EXPORTED)
         return true
     }
 
-    private fun save(name: String): String {
-        val activity = resumed?.get() ?: return "failed: no visible activity"
-        val bitmap = activity.window.decorView.drawToBitmap()
+    /**
+     * Copies what the window shows, including what only the GPU draws (like widgets clipped to their
+     * rounded corners). Falls back to drawing the views in software if the copy fails, comes back
+     * blank or takes too long.
+     */
+    private fun capture(activity: Activity, done: (bitmap: () -> Bitmap) -> Unit) {
+        val window = activity.window
+        val view = window.decorView
+        val main = Handler(Looper.getMainLooper())
+        var finished = false
+        fun finish(how: String, bitmap: () -> Bitmap) {
+            if (finished) return
+            finished = true
+            Log.i(TAG, "Snapshot by $how")
+            done(bitmap)
+        }
+        val software = Runnable { finish("software drawing") { view.drawToBitmap() } }
+        if (view.width == 0 || view.height == 0) return software.run()
+        val copy = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        main.postDelayed(software, 3_000)
+        try {
+            PixelCopy.request(window, copy, { result ->
+                main.removeCallbacks(software)
+                if (result == PixelCopy.SUCCESS && !copy.isBlank()) finish("pixel copy") { copy } else software.run()
+            }, main)
+        } catch (e: IllegalArgumentException) {
+            main.removeCallbacks(software)
+            software.run()
+        }
+    }
+
+    private fun save(activity: Activity, name: String, bitmap: Bitmap): String {
         val directory = File(activity.filesDir, "snapshots").apply { mkdirs() }
         File(directory, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         return "saved"
+    }
+
+    /** True when every sampled pixel is the same, as in a copy of a frame that was never drawn. */
+    private fun Bitmap.isBlank(): Boolean {
+        val first = getPixel(0, 0)
+        for (y in 0 until height step 40) {
+            for (x in 0 until width step 40) if (getPixel(x, y) != first) return false
+        }
+        return true
     }
 
     override fun query(uri: Uri, projection: Array<out String>?, selection: String?, selectionArgs: Array<out String>?, sortOrder: String?): Cursor? = null
@@ -70,4 +121,8 @@ class SnapshotProvider : ContentProvider() {
     override fun insert(uri: Uri, values: ContentValues?): Uri? = null
     override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int = 0
     override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?): Int = 0
+
+    private companion object {
+        const val TAG = "Nimbus/Snapshot"
+    }
 }

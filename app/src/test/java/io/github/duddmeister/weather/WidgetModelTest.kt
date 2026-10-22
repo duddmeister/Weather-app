@@ -2,9 +2,11 @@ package io.github.duddmeister.weather
 
 import io.github.duddmeister.weather.data.WidgetRefreshState
 import io.github.duddmeister.weather.model.AppSettings
+import io.github.duddmeister.weather.model.CurrentConditions
 import io.github.duddmeister.weather.model.SavedLocation
 import io.github.duddmeister.weather.widget.WidgetInputs
 import io.github.duddmeister.weather.widget.WidgetModels
+import io.github.duddmeister.weather.widget.WidgetSky
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -80,5 +82,31 @@ class WidgetModelTest {
         assertFalse(refreshing.hasData)
         assertTrue(refreshing.refreshing)
         assertEquals("Updating…", refreshing.status)
+        assertEquals(WidgetSky.None, refreshing.sky)
+    }
+
+    private fun skyFor(code: Int, isDay: Boolean): WidgetSky {
+        val snapshot = TestData.snapshot(
+            fetchedAtMillis = fetched.toEpochMilli(),
+            startEpoch = fetched.epochSecond - 3600,
+            current = CurrentConditions(time = fetched.epochSecond, temperature = 8.0, weatherCode = code, isDay = isDay),
+        )
+        val inputs = WidgetInputs(listOf(home), mapOf(home.id to snapshot), AppSettings(), WidgetRefreshState())
+        return WidgetModels.build(inputs, null, fetched.toEpochMilli() + 60_000, use24h = true, deviceZone = utc).sky
+    }
+
+    @Test
+    fun skyEffectsFollowTheConditions() {
+        assertEquals(WidgetSky(R.drawable.fx_moon_glow, listOf(R.drawable.fx_stars)), skyFor(0, isDay = false))
+        assertEquals(WidgetSky(R.drawable.fx_sun_glow, emptyList()), skyFor(0, isDay = true))
+        assertEquals(WidgetSky(R.drawable.fx_moon_glow, listOf(R.drawable.fx_stars, R.drawable.fx_clouds_light)), skyFor(2, isDay = false))
+        assertEquals(WidgetSky(null, listOf(R.drawable.fx_clouds_heavy, R.drawable.fx_rain)), skyFor(63, isDay = true))
+        assertEquals(WidgetSky(null, listOf(R.drawable.fx_clouds_heavy, R.drawable.fx_rain_heavy)), skyFor(65, isDay = false))
+        assertEquals(
+            WidgetSky(null, listOf(R.drawable.fx_clouds_heavy, R.drawable.fx_rain_heavy, R.drawable.fx_lightning)),
+            skyFor(95, isDay = true),
+        )
+        assertEquals(WidgetSky(null, listOf(R.drawable.fx_clouds_heavy, R.drawable.fx_snow)), skyFor(73, isDay = true))
+        assertEquals(WidgetSky(null, listOf(R.drawable.fx_fog)), skyFor(45, isDay = true))
     }
 }

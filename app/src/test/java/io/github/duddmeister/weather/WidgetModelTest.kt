@@ -1,9 +1,13 @@
 package io.github.duddmeister.weather
 
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import io.github.duddmeister.weather.data.WidgetRefreshState
 import io.github.duddmeister.weather.model.AppSettings
 import io.github.duddmeister.weather.model.CurrentConditions
 import io.github.duddmeister.weather.model.SavedLocation
+import io.github.duddmeister.weather.widget.SkyEffect
+import io.github.duddmeister.weather.widget.SkyGlow
 import io.github.duddmeister.weather.widget.WidgetInputs
 import io.github.duddmeister.weather.widget.WidgetModels
 import io.github.duddmeister.weather.widget.WidgetSky
@@ -97,16 +101,27 @@ class WidgetModelTest {
 
     @Test
     fun skyEffectsFollowTheConditions() {
-        assertEquals(WidgetSky(R.drawable.fx_moon_glow, listOf(R.drawable.fx_stars)), skyFor(0, isDay = false))
-        assertEquals(WidgetSky(R.drawable.fx_sun_glow, emptyList()), skyFor(0, isDay = true))
-        assertEquals(WidgetSky(R.drawable.fx_moon_glow, listOf(R.drawable.fx_stars, R.drawable.fx_clouds_light)), skyFor(2, isDay = false))
-        assertEquals(WidgetSky(null, listOf(R.drawable.fx_clouds_heavy, R.drawable.fx_rain)), skyFor(63, isDay = true))
-        assertEquals(WidgetSky(null, listOf(R.drawable.fx_clouds_heavy, R.drawable.fx_rain_heavy)), skyFor(65, isDay = false))
-        assertEquals(
-            WidgetSky(null, listOf(R.drawable.fx_clouds_heavy, R.drawable.fx_rain_heavy, R.drawable.fx_lightning)),
-            skyFor(95, isDay = true),
-        )
-        assertEquals(WidgetSky(null, listOf(R.drawable.fx_clouds_heavy, R.drawable.fx_snow)), skyFor(73, isDay = true))
-        assertEquals(WidgetSky(null, listOf(R.drawable.fx_fog)), skyFor(45, isDay = true))
+        assertEquals(WidgetSky(SkyGlow.Moon, listOf(SkyEffect.Stars)), skyFor(0, isDay = false))
+        assertEquals(WidgetSky(SkyGlow.Sun, emptyList()), skyFor(0, isDay = true))
+        assertEquals(WidgetSky(SkyGlow.Moon, listOf(SkyEffect.Stars, SkyEffect.LightClouds)), skyFor(2, isDay = false))
+        assertEquals(WidgetSky(null, listOf(SkyEffect.HeavyClouds)), skyFor(3, isDay = false))
+        assertEquals(WidgetSky(null, listOf(SkyEffect.HeavyClouds, SkyEffect.Rain)), skyFor(63, isDay = true))
+        assertEquals(WidgetSky(null, listOf(SkyEffect.HeavyClouds, SkyEffect.HeavyRain)), skyFor(65, isDay = false))
+        assertEquals(WidgetSky(null, listOf(SkyEffect.HeavyClouds, SkyEffect.HeavyRain, SkyEffect.Lightning)), skyFor(95, isDay = true))
+        assertEquals(WidgetSky(null, listOf(SkyEffect.HeavyClouds, SkyEffect.Snow)), skyFor(73, isDay = true))
+        assertEquals(WidgetSky(null, listOf(SkyEffect.Fog)), skyFor(45, isDay = true))
+    }
+
+    @Test
+    fun cloudsKeepTheirShapeOnEveryWidget() {
+        // A slim 4×1 clock, a 4×2 clock and a 2×2 widget each get clouds drawn for their shape.
+        assertEquals(R.drawable.fx_clouds_heavy_wide, SkyEffect.HeavyClouds.drawable(DpSize(300.dp, 70.dp)))
+        assertEquals(R.drawable.fx_clouds_heavy, SkyEffect.HeavyClouds.drawable(DpSize(300.dp, 160.dp)))
+        assertEquals(R.drawable.fx_clouds_heavy_square, SkyEffect.HeavyClouds.drawable(DpSize(150.dp, 150.dp)))
+        assertEquals(R.drawable.fx_clouds_light_wide, SkyEffect.LightClouds.drawable(DpSize(330.dp, 60.dp)))
+        // Even fields are cropped from a single drawable.
+        assertEquals(R.drawable.fx_rain, SkyEffect.Rain.drawable(DpSize(300.dp, 70.dp)))
+        assertTrue(SkyEffect.HeavyClouds.stretch)
+        assertFalse(SkyEffect.Rain.stretch)
     }
 }

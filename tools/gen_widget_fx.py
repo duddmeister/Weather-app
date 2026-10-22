@@ -2,8 +2,10 @@
 
     python3 tools/gen_widget_fx.py [output dir, default app/src/main/res/drawable]
 
-The full-bleed effects are 400x220 and scaled to cover each widget (centre crop). The sun and moon
-glows are 180x180 and sit in the widget's top-end corner. Positions are seeded, so output is stable.
+Even fields (stars, rain, snow, lightning) are 400x220 and centre-cropped to each widget. Clouds and
+fog follow the widget's edges, so they're stretched to fit; clouds come in wide (400x110), standard
+(400x220) and square (300x300) versions, picked by the widget's shape (see SkyEffect). The sun and
+moon glows are 180x180 and sit in the widget's top-end corner. Positions are seeded, so output is stable.
 """
 import random
 import sys
@@ -104,17 +106,53 @@ def stars():
     write("fx_stars", body)
 
 
-def puff(cx, cy, scale):
-    lobes = [(-0.55, 0.15, 0.42), (-0.15, -0.12, 0.55), (0.3, -0.05, 0.48), (0.65, 0.18, 0.34), (0.05, 0.22, 0.5)]
-    return [circle(cx + dx * 100 * scale, cy + dy * 100 * scale, r * 100 * scale) for dx, dy, r in lobes]
+def soft_lobe(cx, cy, r, alpha):
+    """A circle with a feathered edge; overlapping lobes build up into a soft, puffy cloud."""
+    def argb(k):
+        return f"#{int(round(alpha * k * 255)):02X}FFFFFF"
+    return f'''    <path android:pathData="{circle(cx, cy, r)}">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="radial" android:centerX="{f(cx)}" android:centerY="{f(cy)}" android:gradientRadius="{f(r)}">
+                <item android:offset="0" android:color="{argb(1)}" />
+                <item android:offset="0.6" android:color="{argb(0.85)}" />
+                <item android:offset="1" android:color="#00FFFFFF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+'''
 
 
-def clouds(name, puffs, core_alpha):
-    body = ""
-    for cx, cy, s in puffs:  # a wide faint halo under a denser core gives soft edges
-        body += path(puff(cx, cy, s * 1.18), alpha=core_alpha * 0.45)
-        body += path(puff(cx, cy, s), alpha=core_alpha)
-    write(name, body)
+# The app's cloud: five soft circles (x, y, radius) around its centre, in dp at scale 1.
+LOBES = [(-70, 12, 46), (-28, -10, 58), (26, -4, 54), (72, 12, 42), (0, 22, 60)]
+
+
+def cloud(cx, cy, scale, alpha):
+    return "".join(soft_lobe(cx + dx * scale, cy + dy * scale, r * scale, alpha) for dx, dy, r in LOBES)
+
+
+# Cropping would cut clouds at the edges down to their tips on short widgets, so each shape gets its own.
+SHAPES = {"_wide": (400, 110), "": (400, 220), "_square": (300, 300)}
+
+
+def clouds(name, layout, alpha):
+    """layout(w, h) lists (x, y, scale) for each cloud on a w x h canvas."""
+    for suffix, (w, h) in SHAPES.items():
+        write(name + suffix, "".join(cloud(x, y, s, alpha) for x, y, s in layout(w, h)), w, h)
+
+
+def light_clouds(w, h):
+    # One cloud drifting in the top-end corner and one low in the bottom-start corner.
+    s = min(h / 220, 1.0) * 0.75 + 0.15
+    return [(w - 85 * s - 10, 6, s), (60 * s + 10, h + 4, s * 0.9)]
+
+
+def heavy_clouds(w, h):
+    # A deck along the top and a lower bank along the bottom.
+    s = min(h / 220, 1.0) * 0.7 + 0.25
+    end = int(w + 110 * s)  # a cloud reaches about 115*s either side of its centre
+    top = [(x, -4 + 10 * (i % 2), s * (1.0 if i % 2 else 0.9)) for i, x in enumerate(range(-20, end, int(130 * s)))]
+    bottom = [(x, h + 14, s * 0.8) for x in range(int(40 * s), end, int(170 * s))]
+    return top + bottom
 
 
 def rain(name, count, length, alpha_levels, width, seed):
@@ -160,8 +198,8 @@ def glow(name, color, alpha, core):
 
 
 stars()
-clouds("fx_clouds_light", [(70, 205, 0.55), (315, 18, 0.5)], 0.11)
-clouds("fx_clouds_heavy", [(40, 10, 0.7), (190, -6, 0.75), (345, 14, 0.7), (95, 214, 0.65), (300, 222, 0.7)], 0.11)
+clouds("fx_clouds_light", light_clouds, 0.2)
+clouds("fx_clouds_heavy", heavy_clouds, 0.16)
 rain("fx_rain", 80, (10, 16), [0.16, 0.24, 0.32], 0.9, 3)
 rain("fx_rain_heavy", 160, (14, 24), [0.15, 0.22, 0.3], 1.0, 5)
 snow()

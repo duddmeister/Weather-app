@@ -42,18 +42,19 @@ class WidgetPreviewActivity : ComponentActivity() {
             addView(column)
         })
 
-        // Each layout under a different sky, so one pass shows every effect at a real size.
+        // Each layout under a different sky, so one pass shows every effect at a real size, with clouds
+        // in each of their shapes (wide, standard and square).
         val previews = listOf(
-            Preview("Clock (slim) · 4×1 · clear night", DpSize(298.dp, 82.dp), Kind.Clock, code = 0, isDay = false),
-            Preview("Clock (slim) · short row · rain", DpSize(330.dp, 60.dp), Kind.Clock, code = 63, isDay = true),
+            Preview("Clock (slim) · 4×1 · cloudy night", DpSize(298.dp, 82.dp), Kind.Clock, code = 3, isDay = false),
+            Preview("Clock (slim) · short row · partly cloudy", DpSize(330.dp, 60.dp), Kind.Clock, code = 2, isDay = true),
             Preview("Clock · 4×2 (large display size) · partly cloudy night", DpSize(298.dp, 171.dp), Kind.Clock, code = 2, isDay = false),
             Preview("Clock · 4×2 · thunderstorm", DpSize(340.dp, 205.dp), Kind.Clock, code = 95, isDay = true),
             Preview("Clock · 4×1 · snow", DpSize(330.dp, 110.dp), Kind.Clock, code = 73, isDay = true),
-            Preview("Current · 2×2 · sunny", DpSize(150.dp, 150.dp), Kind.Now, code = 0, isDay = true),
+            Preview("Current · 2×2 · partly cloudy", DpSize(150.dp, 150.dp), Kind.Now, code = 2, isDay = true),
             Preview("Current · 2×1 · fog", DpSize(170.dp, 72.dp), Kind.Now, code = 45, isDay = true),
             Preview("Current · 4×1 · heavy rain at night", DpSize(330.dp, 72.dp), Kind.Now, code = 65, isDay = false),
-            Preview("Forecast · 4×2 · partly cloudy", DpSize(330.dp, 180.dp), Kind.Forecast, code = 2, isDay = true),
-            Preview("Forecast · 4×4 · cloudy night, updating", DpSize(330.dp, 330.dp), Kind.Forecast, code = 3, isDay = false, refreshing = true),
+            Preview("Forecast · 4×2 · clear night", DpSize(330.dp, 180.dp), Kind.Forecast, code = 0, isDay = false),
+            Preview("Forecast · 4×4 · cloudy, updating", DpSize(330.dp, 330.dp), Kind.Forecast, code = 3, isDay = true, refreshing = true),
         )
         lifecycleScope.launch {
             for (preview in previews) {

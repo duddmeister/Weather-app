@@ -88,13 +88,19 @@ private fun WidgetFrame(model: WidgetModel, horizontal: Dp = 14.dp, vertical: Dp
 
 @Composable
 private fun SkyLayers(sky: WidgetSky) {
+    val size = LocalSize.current
     sky.glow?.let { glow ->
         Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) {
-            Image(ImageProvider(glow), contentDescription = null, modifier = GlanceModifier.size(180.dp))
+            Image(ImageProvider(glow.drawable), contentDescription = null, modifier = GlanceModifier.size(180.dp))
         }
     }
-    for (layer in sky.layers) {
-        Image(ImageProvider(layer), contentDescription = null, modifier = GlanceModifier.fillMaxSize(), contentScale = ContentScale.Crop)
+    for (effect in sky.effects) {
+        Image(
+            ImageProvider(effect.drawable(size)),
+            contentDescription = null,
+            modifier = GlanceModifier.fillMaxSize(),
+            contentScale = if (effect.stretch) ContentScale.FillBounds else ContentScale.Crop,
+        )
     }
 }
 

@@ -88,18 +88,18 @@ def write(name, body, w=W, h=H):
 
 def stars():
     rnd = random.Random(7)
-    buckets = {0.35: [], 0.55: [], 0.8: [], 0.95: []}
+    buckets = {0.3: [], 0.45: [], 0.65: [], 0.8: []}
     glows = ""
     for i in range(70):
         x, y = rnd.uniform(6, W - 6), rnd.uniform(5, H - 5)
         u = rnd.random()
         r = 0.45 + 1.0 * u * u
-        alpha = min(buckets, key=lambda a: abs(a - (0.3 + 0.7 * u)))
+        alpha = min(buckets, key=lambda a: abs(a - (0.25 + 0.6 * u)))
         buckets[alpha].append(circle(x, y, r))
-    for _ in range(6):  # a few brighter stars with a halo
+    for _ in range(5):  # a few brighter stars with a halo
         x, y = rnd.uniform(20, W - 20), rnd.uniform(12, H - 12)
-        glows += radial(x, y, 6, "FFFFFF", 0.35)
-        buckets[0.95].append(circle(x, y, 1.6))
+        glows += radial(x, y, 6, "FFFFFF", 0.28)
+        buckets[0.8].append(circle(x, y, 1.6))
     body = glows + "".join(path(c, alpha=a) for a, c in buckets.items() if c)
     write("fx_stars", body)
 
@@ -130,12 +130,12 @@ def rain(name, count, length, alpha_levels, width, seed):
 
 def snow():
     rnd = random.Random(11)
-    buckets = {0.5: [], 0.7: [], 0.9: []}
+    buckets = {0.4: [], 0.55: [], 0.75: []}
     for _ in range(75):
         x, y = rnd.uniform(4, W - 4), rnd.uniform(4, H - 4)
         u = rnd.random()
-        r = 0.9 + 1.6 * u
-        alpha = 0.5 if u < 0.33 else 0.7 if u < 0.7 else 0.9
+        r = 0.8 + 1.4 * u
+        alpha = 0.4 if u < 0.33 else 0.55 if u < 0.7 else 0.75
         buckets[alpha].append(circle(x, y, r))
     write("fx_snow", "".join(path(c, alpha=a) for a, c in buckets.items()))
 
@@ -146,8 +146,8 @@ def fog():
 
 def lightning():
     bolt = "M250,6L229,84L245,84L230,170L270,70L252,70L266,6Z"
-    body = radial(248, 80, 105, "FFFFFF", 0.18)
-    body += path([bolt], color="#F4F2FF", alpha=0.5)
+    body = radial(248, 80, 105, "FFFFFF", 0.14)
+    body += path([bolt], color="#F4F2FF", alpha=0.4)
     write("fx_lightning", body)
 
 
@@ -161,9 +161,9 @@ def glow(name, color, alpha, core):
 
 stars()
 clouds("fx_clouds_light", [(70, 205, 0.55), (315, 18, 0.5)], 0.11)
-clouds("fx_clouds_heavy", [(40, 10, 0.7), (190, -6, 0.75), (345, 14, 0.7), (95, 214, 0.65), (300, 222, 0.7)], 0.13)
-rain("fx_rain", 80, (10, 16), [0.22, 0.32, 0.42], 0.9, 3)
-rain("fx_rain_heavy", 160, (14, 24), [0.2, 0.3, 0.42], 1.0, 5)
+clouds("fx_clouds_heavy", [(40, 10, 0.7), (190, -6, 0.75), (345, 14, 0.7), (95, 214, 0.65), (300, 222, 0.7)], 0.11)
+rain("fx_rain", 80, (10, 16), [0.16, 0.24, 0.32], 0.9, 3)
+rain("fx_rain_heavy", 160, (14, 24), [0.15, 0.22, 0.3], 1.0, 5)
 snow()
 fog()
 lightning()

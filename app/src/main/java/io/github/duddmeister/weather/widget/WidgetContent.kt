@@ -1,6 +1,8 @@
 package io.github.duddmeister.weather.widget
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.provider.AlarmClock
 import android.text.format.DateFormat
@@ -312,7 +314,7 @@ private fun RangeBar(start: Float, end: Float, width: Dp) {
 fun ClockWidgetContent(model: WidgetModel) {
     val size = LocalSize.current
     // Text is sized in sp, so a larger font setting needs more height for the same layout.
-    val fontScale = LocalContext.current.resources.configuration.fontScale.coerceIn(1f, 1.6f)
+    val fontScale = fontScaleOf(LocalContext.current)
     val height = size.height / fontScale
     // Compact: small clock. Medium: big clock. Tall: clock plus the next hours. Roomy: both, bigger.
     val roomy = height >= 200.dp
@@ -364,6 +366,13 @@ fun ClockWidgetContent(model: WidgetModel) {
         }
     }
 }
+
+/**
+ * The system font scale, clamped to what the layouts plan for. Glance has no LocalConfiguration, so it
+ * comes from the context; widgets re-render on every data update, which picks up a changed setting.
+ */
+@SuppressLint("LocalContextConfigurationRead")
+private fun fontScaleOf(context: Context): Float = context.resources.configuration.fontScale.coerceIn(1f, 1.6f)
 
 /**
  * Time and date as platform TextClocks, so they tick every minute without waking the app. Tapping

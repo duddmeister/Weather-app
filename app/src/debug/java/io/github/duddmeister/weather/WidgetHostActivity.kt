@@ -45,7 +45,8 @@ class WidgetHostActivity : ComponentActivity() {
         })
 
         val specs = listOf(
-            Triple("Clock & weather · live", ClockWidgetReceiver::class.java, SizeF(330f, 180f)),
+            // The host view pads ~8dp a side, so this shows the clock at about 298x171dp, a real 4x2.
+            Triple("Clock & weather · live", ClockWidgetReceiver::class.java, SizeF(314f, 187f)),
             Triple("Current weather · live", NowWidgetReceiver::class.java, SizeF(150f, 150f)),
             Triple("Weather forecast · live", ForecastWidgetReceiver::class.java, SizeF(330f, 300f)),
         )

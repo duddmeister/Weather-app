@@ -86,7 +86,7 @@ class ForecastWidget : NimbusWidget() {
 class ClockWidget : NimbusWidget() {
     override val sizeMode: SizeMode = SizeMode.Responsive(
         listOf(180.dp, 250.dp, 300.dp).flatMap { width ->
-            listOf(100.dp, 135.dp, 180.dp).map { height -> DpSize(width, height) }
+            listOf(100.dp, 125.dp, 160.dp, 200.dp).map { height -> DpSize(width, height) }
         }.toSet(),
     )
 

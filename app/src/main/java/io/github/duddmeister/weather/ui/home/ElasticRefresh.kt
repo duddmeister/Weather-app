@@ -61,6 +61,9 @@ private val MaxPull = 150.dp
 
 private val HeaderHeight = 28.dp
 
+/** How long "Updated just now" shows before the page springs back: long enough to register, no longer. */
+private const val DONE_HOLD_MILLIS = 400L
+
 /**
  * Pull-to-refresh that drags the whole page down and shows a status line in the gap above it,
  * instead of a spinner over the content. While a refresh started this way runs, the page rests a
@@ -89,7 +92,7 @@ fun ElasticRefreshBox(
             pulled = false
             started = false
             done = true
-            delay(1_000)
+            delay(DONE_HOLD_MILLIS)
             done = false
         }
     }

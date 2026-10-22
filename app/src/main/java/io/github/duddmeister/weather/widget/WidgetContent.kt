@@ -311,29 +311,33 @@ private fun RangeBar(start: Float, end: Float, width: Dp) {
 @Composable
 fun ClockWidgetContent(model: WidgetModel) {
     val size = LocalSize.current
-    // Short: compact clock. Medium: a bigger clock. Tall: room for the next hours too.
-    val tall = size.height >= 180.dp
-    val medium = !tall && size.height >= 135.dp
-    val wide = size.width >= 300.dp
-    WidgetFrame(model, horizontal = 16.dp, vertical = 10.dp) {
+    // Text is sized in sp, so a larger font setting needs more height for the same layout.
+    val fontScale = LocalContext.current.resources.configuration.fontScale.coerceIn(1f, 1.6f)
+    val height = size.height / fontScale
+    // Compact: small clock. Medium: big clock. Tall: clock plus the next hours. Roomy: both, bigger.
+    val roomy = height >= 200.dp
+    val tall = height >= 160.dp
+    val compact = height < 125.dp
+    val tight = tall && !roomy
+    WidgetFrame(model, horizontal = 16.dp, vertical = if (tight) 8.dp else 10.dp) {
         Column(modifier = GlanceModifier.fillMaxSize()) {
             Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                 ClockFace(
                     model = model,
                     timeSize = when {
-                        medium -> 56.sp
-                        tall -> 52.sp
-                        else -> 42.sp
+                        compact -> 42.sp
+                        tight -> 48.sp
+                        else -> 56.sp
                     },
                     dateSize = 13.sp,
-                    longDate = wide,
+                    longDate = size.width >= 250.dp,
                     modifier = GlanceModifier.defaultWeight(),
                 )
                 Column(horizontalAlignment = Alignment.End) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        WeatherIcon(model.icon, if (tall || medium) 36.dp else 30.dp, model.condition)
+                        WeatherIcon(model.icon, if (compact) 30.dp else 34.dp, model.condition)
                         Spacer(GlanceModifier.width(4.dp))
-                        Text(text = model.temperature, style = text(if (tall || medium) 30.sp else 26.sp, family = Light), maxLines = 1)
+                        Text(text = model.temperature, style = text(if (compact) 26.sp else 30.sp, family = Light), maxLines = 1)
                     }
                     Text(text = model.condition, style = text(12.sp, WhiteSecondary, align = TextAlign.End), maxLines = 1)
                     if (model.highLow.isNotBlank()) {
@@ -343,14 +347,19 @@ fun ClockWidgetContent(model: WidgetModel) {
             }
             Spacer(GlanceModifier.defaultWeight())
             if (tall && model.hasData) {
-                HourlyRow(model.hours.take(if (wide) 7 else 5), compact = true)
+                val hourCount = when {
+                    size.width >= 300.dp -> 7
+                    size.width >= 250.dp -> 6
+                    else -> 4
+                }
+                HourlyRow(model.hours.take(hourCount), compact = true)
                 Spacer(GlanceModifier.defaultWeight())
             }
             Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 LocationLabel(model, 11.sp, modifier = GlanceModifier.defaultWeight())
                 StatusLine(model, 10.sp)
                 Spacer(GlanceModifier.width(8.dp))
-                RefreshButton(model, 26.dp)
+                RefreshButton(model, if (tight) 24.dp else 26.dp)
             }
         }
     }

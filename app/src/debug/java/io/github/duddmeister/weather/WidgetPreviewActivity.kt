@@ -38,7 +38,8 @@ class WidgetPreviewActivity : ComponentActivity() {
         })
 
         val previews = listOf(
-            Triple("Clock · 4×2", DpSize(330.dp, 180.dp), Kind.Clock),
+            Triple("Clock · 4×2 (phone with large display size)", DpSize(298.dp, 171.dp), Kind.Clock),
+            Triple("Clock · 4×2", DpSize(340.dp, 205.dp), Kind.Clock),
             Triple("Clock · 4×1", DpSize(330.dp, 110.dp), Kind.Clock),
             Triple("Current · 2×2", DpSize(150.dp, 150.dp), Kind.Now),
             Triple("Current · 2×1", DpSize(170.dp, 72.dp), Kind.Now),

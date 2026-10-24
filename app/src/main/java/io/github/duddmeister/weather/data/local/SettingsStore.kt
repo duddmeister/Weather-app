@@ -46,6 +46,7 @@ class SettingsStore(context: Context, private val defaultUnits: UnitPrefs) {
         val SEVERE_ALERTS = booleanPreferencesKey("severe_alerts")
         val UPDATE_NOTIFICATIONS = booleanPreferencesKey("update_notifications")
         val ANIMATED_BACKGROUND = booleanPreferencesKey("animated_background")
+        val ANIMATED_WIDGETS = booleanPreferencesKey("animated_widgets")
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
 
         val SAVED_LOCATIONS = stringPreferencesKey("saved_locations")
@@ -173,6 +174,7 @@ class SettingsStore(context: Context, private val defaultUnits: UnitPrefs) {
             severeAlerts = this[Keys.SEVERE_ALERTS] ?: defaults.severeAlerts,
             updateNotifications = this[Keys.UPDATE_NOTIFICATIONS] ?: defaults.updateNotifications,
             animatedBackground = this[Keys.ANIMATED_BACKGROUND] ?: defaults.animatedBackground,
+            animatedWidgets = this[Keys.ANIMATED_WIDGETS] ?: defaults.animatedWidgets,
             onboardingDone = this[Keys.ONBOARDING_DONE] ?: defaults.onboardingDone,
         )
     }
@@ -192,6 +194,7 @@ class SettingsStore(context: Context, private val defaultUnits: UnitPrefs) {
         this[Keys.SEVERE_ALERTS] = s.severeAlerts
         this[Keys.UPDATE_NOTIFICATIONS] = s.updateNotifications
         this[Keys.ANIMATED_BACKGROUND] = s.animatedBackground
+        this[Keys.ANIMATED_WIDGETS] = s.animatedWidgets
         this[Keys.ONBOARDING_DONE] = s.onboardingDone
     }
 

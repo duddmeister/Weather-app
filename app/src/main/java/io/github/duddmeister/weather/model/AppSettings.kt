@@ -12,6 +12,8 @@ data class AppSettings(
     val severeAlerts: Boolean = true,
     val updateNotifications: Boolean = true,
     val animatedBackground: Boolean = true,
+    /** Widgets' rain, snow, stars and clouds move while the home screen shows them. */
+    val animatedWidgets: Boolean = true,
     val onboardingDone: Boolean = false,
 ) {
     companion object {

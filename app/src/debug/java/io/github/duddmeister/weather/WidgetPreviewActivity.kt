@@ -42,8 +42,8 @@ class WidgetPreviewActivity : ComponentActivity() {
             addView(column)
         })
 
-        // Each layout under a different sky, so one pass shows every effect at a real size, with clouds
-        // in each of their shapes (wide, standard and square).
+        // Each layout under a different sky, so one pass shows every effect at a real size, in each of
+        // their shapes (wide, standard and square). They animate as on a home screen, except the last.
         val previews = listOf(
             Preview("Clock (slim) · 4×1 · cloudy night", DpSize(298.dp, 82.dp), Kind.Clock, code = 3, isDay = false),
             Preview("Clock (slim) · short row · partly cloudy", DpSize(330.dp, 60.dp), Kind.Clock, code = 2, isDay = true),
@@ -54,7 +54,7 @@ class WidgetPreviewActivity : ComponentActivity() {
             Preview("Current · 2×1 · fog", DpSize(170.dp, 72.dp), Kind.Now, code = 45, isDay = true),
             Preview("Current · 4×1 · heavy rain at night", DpSize(330.dp, 72.dp), Kind.Now, code = 65, isDay = false),
             Preview("Forecast · 4×2 · clear night", DpSize(330.dp, 180.dp), Kind.Forecast, code = 0, isDay = false),
-            Preview("Forecast · 4×4 · cloudy, updating", DpSize(330.dp, 330.dp), Kind.Forecast, code = 3, isDay = true, refreshing = true),
+            Preview("Forecast · 4×4 · cloudy, updating, still", DpSize(330.dp, 330.dp), Kind.Forecast, code = 3, isDay = true, refreshing = true, animate = false),
         )
         lifecycleScope.launch {
             for (preview in previews) {
@@ -88,7 +88,15 @@ class WidgetPreviewActivity : ComponentActivity() {
     private enum class Kind { Clock, Now, Forecast }
 
     /** A layout at [size] showing WMO weather [code], by day or night. */
-    private data class Preview(val label: String, val size: DpSize, val kind: Kind, val code: Int, val isDay: Boolean, val refreshing: Boolean = false)
+    private data class Preview(
+        val label: String,
+        val size: DpSize,
+        val kind: Kind,
+        val code: Int,
+        val isDay: Boolean,
+        val refreshing: Boolean = false,
+        val animate: Boolean = true,
+    )
 
     private fun sample(preview: Preview): WidgetModel {
         // The sky comes from the same scene the app and the real widgets use.
@@ -108,6 +116,7 @@ class WidgetPreviewActivity : ComponentActivity() {
             icon = WeatherVisuals.icon(now.weatherCode, now.isDay),
             background = WeatherVisuals.widgetBackground(scene.kind),
             sky = WidgetSky.of(scene),
+            animateSky = preview.animate,
         )
     }
 

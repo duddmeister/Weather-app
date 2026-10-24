@@ -169,6 +169,14 @@ fun SettingsScreen(
                         onChange { it.copy(animatedBackground = on) }
                     }
                     Divider()
+                    Toggle(
+                        "Animated widgets",
+                        "Rain, snow, stars and clouds move on your home screen widgets too. Uses a little more battery while they're on screen.",
+                        settings.animatedWidgets,
+                    ) { on ->
+                        onChange { it.copy(animatedWidgets = on) }
+                    }
+                    Divider()
                     Choice("Air quality index", AqiScale.entries, settings.aqiScale, { it.label }) { v -> onChange { it.copy(aqiScale = v) } }
                 }
             }

@@ -76,6 +76,8 @@ data class WidgetModel(
     val clock24h: Boolean? = null,
     /** Stars, clouds, rain and the like, drawn over [background]. */
     val sky: WidgetSky = WidgetSky.None,
+    /** Whether [sky] moves, as in the app, or stays still. */
+    val animateSky: Boolean = false,
 )
 
 object WidgetModels {
@@ -185,6 +187,7 @@ object WidgetModels {
             hasData = true,
             clock24h = clock24h,
             sky = WidgetSky.of(scene),
+            animateSky = inputs.settings.animatedWidgets,
         )
     }
 }

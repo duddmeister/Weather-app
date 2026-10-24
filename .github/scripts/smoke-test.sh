@@ -114,6 +114,24 @@ snap() {
   fi
 }
 
+# compare_frames <a> <b> <what>: reports how much of the screen changed between two snapshots.
+compare_frames() {
+  python3 - "$OUT/$1.png" "$OUT/$2.png" "$3" <<'PY' || true
+import sys
+from PIL import Image, ImageChops
+a, b, what = sys.argv[1:]
+try:
+    x, y = Image.open(a).convert("L"), Image.open(b).convert("L")
+except OSError as e:
+    print(f"::warning::Couldn't compare frames of {what}: {e}")
+    sys.exit(0)
+changed = sum(ImageChops.difference(x, y).histogram()[6:]) / (x.width * x.height)
+print(f"Motion in {what}: {changed * 100:.2f}% of the screen changed between frames")
+if changed < 0.001:
+    print(f"::warning::The {what} didn't move between frames")
+PY
+}
+
 # walk <package> [snapshots]: opens each screen in turn, optionally capturing it.
 walk() {
   local package="$1" capture="${2:-}"
@@ -218,9 +236,13 @@ echo "::endgroup::"
 echo "::group::Debug build with screenshots"
 adb_ install -r -g "$APK_DIR/debug/app-debug.apk"
 walk "$DEBUG_PKG" capture
-# Widget layouts rendered through Glance with sample data.
+# Widget layouts rendered through Glance with sample data. Their skies animate, so animations are
+# turned on for the widgets (the emulator otherwise runs with them off) and two frames are compared.
+adb_ shell settings put global animator_duration_scale 1
 adb_ shell am start -W -n "$DEBUG_PKG/$PKG.WidgetPreviewActivity" > /dev/null
 snap 14-widgets 6
+snap 14-widgets-b 0.3
+compare_frames 14-widgets 14-widgets-b "widget previews"
 swipe_up
 snap 15-widgets-more
 swipe_up
@@ -236,10 +258,13 @@ adb_ shell appwidget grantbind --package "$DEBUG_PKG" --user 0
 adb_ logcat -c
 adb_ shell am start -W -n "$DEBUG_PKG/$PKG.WidgetHostActivity" > /dev/null
 snap 17-live-widgets 8
+snap 17-live-widgets-b 0.3
+compare_frames 17-live-widgets 17-live-widgets-b "live widgets (only moves if New York's weather has effects)"
 adb_ logcat -c
 adb_ shell am start -n "$DEBUG_PKG/$PKG.WidgetHostActivity" -a "$PKG.debug.PRESS_REFRESH" > /dev/null
 snap 18-live-widgets-refreshing 1
 snap 19-live-widgets-refreshed 10
+adb_ shell settings put global animator_duration_scale 0
 check_emulator "live widgets"
 adb_ logcat -d > "$OUT/logcat-widgets.txt"
 grep -E "Nimbus/(WidgetHost|WeatherRepository|WeatherRefresher|WidgetUpdater)" "$OUT/logcat-widgets.txt" || true

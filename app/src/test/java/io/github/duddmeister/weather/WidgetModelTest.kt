@@ -6,9 +6,11 @@ import io.github.duddmeister.weather.data.WidgetRefreshState
 import io.github.duddmeister.weather.model.AppSettings
 import io.github.duddmeister.weather.model.CurrentConditions
 import io.github.duddmeister.weather.model.SavedLocation
+import io.github.duddmeister.weather.widget.SkyArt
 import io.github.duddmeister.weather.widget.SkyEffect
 import io.github.duddmeister.weather.widget.SkyGlow
 import io.github.duddmeister.weather.widget.WidgetInputs
+import io.github.duddmeister.weather.widget.WidgetModel
 import io.github.duddmeister.weather.widget.WidgetModels
 import io.github.duddmeister.weather.widget.WidgetSky
 import org.junit.After
@@ -89,15 +91,17 @@ class WidgetModelTest {
         assertEquals(WidgetSky.None, refreshing.sky)
     }
 
-    private fun skyFor(code: Int, isDay: Boolean): WidgetSky {
+    private fun modelFor(code: Int, isDay: Boolean, settings: AppSettings = AppSettings()): WidgetModel {
         val snapshot = TestData.snapshot(
             fetchedAtMillis = fetched.toEpochMilli(),
             startEpoch = fetched.epochSecond - 3600,
             current = CurrentConditions(time = fetched.epochSecond, temperature = 8.0, weatherCode = code, isDay = isDay),
         )
-        val inputs = WidgetInputs(listOf(home), mapOf(home.id to snapshot), AppSettings(), WidgetRefreshState())
-        return WidgetModels.build(inputs, null, fetched.toEpochMilli() + 60_000, use24h = true, deviceZone = utc).sky
+        val inputs = WidgetInputs(listOf(home), mapOf(home.id to snapshot), settings, WidgetRefreshState())
+        return WidgetModels.build(inputs, null, fetched.toEpochMilli() + 60_000, use24h = true, deviceZone = utc)
     }
+
+    private fun skyFor(code: Int, isDay: Boolean): WidgetSky = modelFor(code, isDay).sky
 
     @Test
     fun skyEffectsFollowTheConditions() {
@@ -113,15 +117,18 @@ class WidgetModelTest {
     }
 
     @Test
-    fun cloudsKeepTheirShapeOnEveryWidget() {
-        // A slim 4×1 clock, a 4×2 clock and a 2×2 widget each get clouds drawn for their shape.
-        assertEquals(R.drawable.fx_clouds_heavy_wide, SkyEffect.HeavyClouds.drawable(DpSize(300.dp, 70.dp)))
-        assertEquals(R.drawable.fx_clouds_heavy, SkyEffect.HeavyClouds.drawable(DpSize(300.dp, 160.dp)))
-        assertEquals(R.drawable.fx_clouds_heavy_square, SkyEffect.HeavyClouds.drawable(DpSize(150.dp, 150.dp)))
-        assertEquals(R.drawable.fx_clouds_light_wide, SkyEffect.LightClouds.drawable(DpSize(330.dp, 60.dp)))
-        // Even fields are cropped from a single drawable.
-        assertEquals(R.drawable.fx_rain, SkyEffect.Rain.drawable(DpSize(300.dp, 70.dp)))
-        assertTrue(SkyEffect.HeavyClouds.stretch)
-        assertFalse(SkyEffect.Rain.stretch)
+    fun effectsFitEveryWidgetShape() {
+        // A slim 4×1 clock, a 4×2 clock and a 2×2 widget each get the version drawn for their shape.
+        assertEquals(SkyArt(R.drawable.fx_clouds_heavy_wide, R.layout.fx_clouds_heavy_wide), SkyEffect.HeavyClouds.art(DpSize(300.dp, 70.dp)))
+        assertEquals(SkyArt(R.drawable.fx_clouds_heavy, R.layout.fx_clouds_heavy), SkyEffect.HeavyClouds.art(DpSize(300.dp, 160.dp)))
+        assertEquals(SkyArt(R.drawable.fx_clouds_heavy_square, R.layout.fx_clouds_heavy_square), SkyEffect.HeavyClouds.art(DpSize(150.dp, 150.dp)))
+        assertEquals(R.drawable.fx_rain_wide, SkyEffect.Rain.art(DpSize(330.dp, 60.dp)).still)
+        assertEquals(R.layout.fx_lightning_square, SkyEffect.Lightning.art(DpSize(330.dp, 300.dp)).animated)
+    }
+
+    @Test
+    fun widgetsAnimateUnlessTurnedOff() {
+        assertTrue(modelFor(63, isDay = true).animateSky)
+        assertFalse(modelFor(63, isDay = true, AppSettings(animatedWidgets = false)).animateSky)
     }
 }

@@ -79,7 +79,7 @@ private fun WidgetFrame(model: WidgetModel, horizontal: Dp = 14.dp, vertical: Dp
             .clickable(actionStartActivity(open)),
     ) {
         // Launchers clip a widget's children to its rounded corners only from Android 12.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) SkyLayers(model.sky)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) SkyLayers(model.sky, model.animateSky)
         Box(modifier = GlanceModifier.fillMaxSize().padding(horizontal = horizontal, vertical = vertical)) {
             content()
         }
@@ -87,20 +87,22 @@ private fun WidgetFrame(model: WidgetModel, horizontal: Dp = 14.dp, vertical: Dp
 }
 
 @Composable
-private fun SkyLayers(sky: WidgetSky) {
+private fun SkyLayers(sky: WidgetSky, animate: Boolean) {
     val size = LocalSize.current
+    val context = LocalContext.current
     sky.glow?.let { glow ->
         Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) {
             Image(ImageProvider(glow.drawable), contentDescription = null, modifier = GlanceModifier.size(180.dp))
         }
     }
     for (effect in sky.effects) {
-        Image(
-            ImageProvider(effect.drawable(size)),
-            contentDescription = null,
-            modifier = GlanceModifier.fillMaxSize(),
-            contentScale = if (effect.stretch) ContentScale.FillBounds else ContentScale.Crop,
-        )
+        val art = effect.art(size)
+        if (animate) {
+            // The home screen plays these itself while the widget is on screen, without waking the app.
+            AndroidRemoteViews(RemoteViews(context.packageName, art.animated), GlanceModifier.fillMaxSize())
+        } else {
+            Image(ImageProvider(art.still), contentDescription = null, modifier = GlanceModifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
+        }
     }
 }
 

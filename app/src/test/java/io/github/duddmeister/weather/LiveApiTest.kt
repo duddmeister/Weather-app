@@ -11,10 +11,8 @@ import io.github.duddmeister.weather.data.remote.ReverseGeocodeClient
 import io.github.duddmeister.weather.data.remote.toAirQuality
 import io.github.duddmeister.weather.data.remote.toSnapshot
 import io.github.duddmeister.weather.domain.NowcastBuilder
-import io.github.duddmeister.weather.domain.SummaryBuilder
 import io.github.duddmeister.weather.domain.conditionsAt
 import io.github.duddmeister.weather.model.SavedLocation
-import io.github.duddmeister.weather.model.UnitPrefs
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -70,7 +68,6 @@ class LiveApiTest {
 
         println("Now: ${snapshot.conditionsAt(now)}")
         println("Nowcast: ${NowcastBuilder.build(snapshot, now)?.headline}")
-        println("Summary: ${SummaryBuilder.build(snapshot, now, UnitPrefs(), use24h = false)}")
     }
 
     @Test

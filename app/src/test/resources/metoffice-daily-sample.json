@@ -1,0 +1,74 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -5.9301,
+     54.5973,
+     21.0
+    ]
+   },
+   "properties": {
+    "requestPointDistance": 412.3,
+    "modelRunDate": "2026-10-24T17:00Z",
+    "timeSeries": [
+     {
+      "time": "2026-10-23T00:00Z",
+      "midday10MWindSpeed": 6.1,
+      "midnight10MWindSpeed": 4.0,
+      "nightSignificantWeatherCode": 12,
+      "dayMaxScreenTemperature": 13.1,
+      "nightMinScreenTemperature": 7.4,
+      "nightMinFeelsLikeTemp": 4.2,
+      "nightProbabilityOfPrecipitation": 64
+     },
+     {
+      "time": "2026-10-24T00:00Z",
+      "midday10MWindSpeed": 8.2,
+      "midnight10MWindSpeed": 9.1,
+      "daySignificantWeatherCode": 14,
+      "nightSignificantWeatherCode": 15,
+      "dayMaxScreenTemperature": 12.3,
+      "nightMinScreenTemperature": 8.1,
+      "dayMaxFeelsLikeTemp": 8.6,
+      "nightMinFeelsLikeTemp": 4.9,
+      "dayProbabilityOfPrecipitation": 81,
+      "nightProbabilityOfPrecipitation": 92,
+      "maxUvIndex": 1
+     },
+     {
+      "time": "2026-10-25T00:00Z",
+      "midday10MWindSpeed": 7.0,
+      "midnight10MWindSpeed": 4.5,
+      "daySignificantWeatherCode": 3,
+      "nightSignificantWeatherCode": 2,
+      "dayMaxScreenTemperature": 11.0,
+      "nightMinScreenTemperature": 5.5,
+      "dayMaxFeelsLikeTemp": 7.9,
+      "nightMinFeelsLikeTemp": 2.8,
+      "dayProbabilityOfPrecipitation": 12,
+      "nightProbabilityOfPrecipitation": 6,
+      "maxUvIndex": 1
+     },
+     {
+      "time": "2026-10-26T00:00Z",
+      "midday10MWindSpeed": 3.4,
+      "midnight10MWindSpeed": 2.1,
+      "daySignificantWeatherCode": 1,
+      "nightSignificantWeatherCode": 0,
+      "dayMaxScreenTemperature": 10.4,
+      "nightMinScreenTemperature": 3.2,
+      "dayMaxFeelsLikeTemp": 9.1,
+      "nightMinFeelsLikeTemp": 1.0,
+      "dayProbabilityOfPrecipitation": 3,
+      "nightProbabilityOfPrecipitation": 2,
+      "maxUvIndex": 2
+     }
+    ]
+   }
+  }
+ ]
+}

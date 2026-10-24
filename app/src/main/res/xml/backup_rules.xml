@@ -2,4 +2,6 @@
 <full-backup-content>
     <!-- Cached forecasts are re-downloaded; settings and saved places are backed up. -->
     <exclude domain="file" path="weather/" />
+    <!-- The Met Office API key stays on the device. -->
+    <exclude domain="file" path="datastore/secrets.preferences_pb" />
 </full-backup-content>

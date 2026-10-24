@@ -4,6 +4,7 @@ import io.github.duddmeister.weather.core.AppJson
 import io.github.duddmeister.weather.core.HttpException
 import io.github.duddmeister.weather.core.HttpFetcher
 import io.github.duddmeister.weather.core.createHttpClient
+import io.github.duddmeister.weather.data.remote.MetOfficeClient
 import io.github.duddmeister.weather.data.remote.MeteoAlarmClient
 import io.github.duddmeister.weather.data.remote.NwsClient
 import io.github.duddmeister.weather.data.remote.OpenMeteoClient
@@ -106,5 +107,32 @@ class LiveApiTest {
         val belfast = live { MeteoAlarmClient(http).warningsAt("GB", 54.5973, -5.9301, now, "en") }
         println("Warnings for Belfast: ${belfast?.map { "${it.event} (${it.sender})" }}")
         assertNotNull(belfast)
+    }
+
+    /** Needs a Weather DataHub key in METOFFICE_API_KEY (a repository secret in CI); skipped otherwise. */
+    @Test
+    fun metOfficeForecasts() {
+        val key = System.getenv("METOFFICE_API_KEY")?.takeIf { it.isNotBlank() }
+        assumeTrue("No METOFFICE_API_KEY", key != null)
+        val client = MetOfficeClient(http)
+        val hours = live { client.hourly(key!!, 54.5973, -5.9301) }
+        val days = live { client.daily(key!!, 54.5973, -5.9301) }
+        println("Met Office for Belfast: ${hours.size} hours from ${hours.firstOrNull()}, ${days.size} days")
+        days.forEach { println("  $it") }
+        assertTrue("hours=${hours.size}", hours.size >= 40)
+        assertTrue("days=${days.size}", days.size >= 7)
+        val now = System.currentTimeMillis() / 1000
+        assertTrue("first hour ${hours.first().time} vs now $now", kotlin.math.abs(hours.first().time - now) < 6 * 3600)
+        // Every field the app uses arrives, in plausible units.
+        val hour = hours.first { it.temperature != null }
+        assertTrue("${hour.temperature}", hour.temperature!! in -30.0..40.0)
+        assertTrue("${hour.pressure}", hour.pressure!! in 930.0..1070.0)
+        assertTrue("${hour.windSpeed}", hour.windSpeed!! in 0.0..250.0)
+        assertNotNull(hour.feelsLike)
+        assertNotNull(hour.humidity)
+        assertNotNull(hour.precipitationProbability)
+        assertTrue("codes ${hours.map { it.weatherCode }}", hours.count { it.weatherCode != null } >= hours.size - 2)
+        // From tomorrow on, each day has its day and night (yesterday's and today's may be partly over).
+        assertTrue(days.drop(2).all { it.dayMax != null && it.nightMin != null && it.dayWeatherCode != null })
     }
 }

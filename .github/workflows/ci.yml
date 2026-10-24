@@ -38,6 +38,8 @@ jobs:
       - name: Build release APK, run unit tests and lint
         env:
           LIVE_API_TEST: "1"
+          # Optional: a Weather DataHub key, so the Met Office contract test runs too.
+          METOFFICE_API_KEY: ${{ secrets.METOFFICE_API_KEY }}
         run: |
           set -o pipefail
           ./gradlew --continue \

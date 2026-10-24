@@ -13,13 +13,16 @@ import io.github.duddmeister.weather.core.AppLog
 import io.github.duddmeister.weather.core.HttpFetcher
 import io.github.duddmeister.weather.core.createHttpClient
 import io.github.duddmeister.weather.data.LocationRepository
+import io.github.duddmeister.weather.data.MetOfficeForecasts
 import io.github.duddmeister.weather.data.WeatherRefresher
 import io.github.duddmeister.weather.data.WeatherRepository
+import io.github.duddmeister.weather.data.local.MetOfficeKeyStore
 import io.github.duddmeister.weather.data.local.SettingsStore
 import io.github.duddmeister.weather.data.local.WeatherCache
 import io.github.duddmeister.weather.data.location.LocationProvider
 import io.github.duddmeister.weather.data.location.PlaceResolver
 import io.github.duddmeister.weather.data.remote.GitHubReleasesClient
+import io.github.duddmeister.weather.data.remote.MetOfficeClient
 import io.github.duddmeister.weather.data.remote.MeteoAlarmClient
 import io.github.duddmeister.weather.data.remote.NwsClient
 import io.github.duddmeister.weather.data.remote.OpenMeteoClient
@@ -78,10 +81,12 @@ class AppContainer(private val app: Application) {
 
     val settingsStore = SettingsStore(app, UnitPrefs.defaultsFor(Locale.getDefault().country))
     private val connectivity = app.getSystemService(ConnectivityManager::class.java)
+    val metOffice = MetOfficeForecasts(MetOfficeClient(http), MetOfficeKeyStore(app), appScope)
     val repository = WeatherRepository(
         openMeteo = openMeteo,
         nws = nws,
         meteoAlarm = MeteoAlarmClient(http),
+        metOffice = metOffice,
         cache = WeatherCache(app),
         scope = appScope,
         isMetered = { connectivity?.isActiveNetworkMetered ?: true },

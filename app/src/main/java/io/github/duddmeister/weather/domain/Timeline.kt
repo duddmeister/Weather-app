@@ -117,25 +117,16 @@ fun WeatherSnapshot.conditionsAt(nowMillis: Long): NowConditions {
         0.0
     }
 
-    fun lerp(a: Double?, b: Double?): Double? = when {
-        a == null -> b
-        b == null -> a
-        else -> a + (b - a) * fraction
-    }
-
-    // Angles need shortest-path interpolation (350° → 10° passes through 0°, not 180°).
-    fun lerpAngle(a: Double?, b: Double?): Double? {
-        if (a == null || b == null) return a ?: b
-        var delta = (b - a) % 360
-        if (delta > 180) delta -= 360
-        if (delta < -180) delta += 360
-        return ((a + delta * fraction) % 360 + 360) % 360
-    }
+    fun lerp(a: Double?, b: Double?): Double? = interpolate(a, b, fraction)
+    fun lerpAngle(a: Double?, b: Double?): Double? = interpolateAngle(a, b, fraction)
 
     val slot = minutely.firstOrNull { it.time > nowSec && it.time - 900 <= nowSec }
     // The hour labelled T describes the hour ending at T, so conditions now belong to the next point.
     val hourForCode = after ?: before
-    val code = slot?.weatherCode ?: hourForCode.weatherCode ?: current.weatherCode
+    // The Met Office's symbols are for the time they're labelled with, and beat a generic 15-minute code.
+    val metOfficeCode = metOffice?.hourly?.minByOrNull { abs(it.time - nowSec) }
+        ?.takeIf { abs(it.time - nowSec) <= 1800 }?.weatherCode
+    val code = metOfficeCode ?: slot?.weatherCode ?: hourForCode.weatherCode ?: current.weatherCode
     val isDay = isDaylightAt(nowSec) ?: hourForCode.isDay ?: current.isDay
 
     return NowConditions(
@@ -156,6 +147,22 @@ fun WeatherSnapshot.conditionsAt(nowMillis: Long): NowConditions {
         precipitation = slot?.precipitation ?: hourForCode.precipitation?.div(4),
         estimated = true,
     )
+}
+
+/** Linear interpolation that falls back to whichever value is known. */
+internal fun interpolate(a: Double?, b: Double?, fraction: Double): Double? = when {
+    a == null -> b
+    b == null -> a
+    else -> a + (b - a) * fraction
+}
+
+/** Angles need shortest-path interpolation (350° → 10° passes through 0°, not 180°). */
+internal fun interpolateAngle(a: Double?, b: Double?, fraction: Double): Double? {
+    if (a == null || b == null) return a ?: b
+    var delta = (b - a) % 360
+    if (delta > 180) delta -= 360
+    if (delta < -180) delta += 360
+    return ((a + delta * fraction) % 360 + 360) % 360
 }
 
 enum class PressureTrend(val label: String) { Rising("Rising"), Falling("Falling"), Steady("Steady") }

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Umbrella
@@ -164,14 +163,5 @@ fun NowcastCard(nowcast: Nowcast, snapshot: WeatherSnapshot, use24h: Boolean) {
                 if (i < labelled.lastIndex) Spacer(Modifier.weight(1f))
             }
         }
-    }
-}
-
-@Composable
-fun SummaryCard(summary: String) {
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
-        CardLabel(Icons.Rounded.AutoAwesome, "Overview")
-        Spacer(Modifier.height(8.dp))
-        Text(summary, style = MaterialTheme.typography.bodyLarge, color = Color.White, modifier = Modifier.padding(end = 4.dp))
     }
 }

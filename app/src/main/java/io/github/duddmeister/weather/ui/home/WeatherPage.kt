@@ -49,7 +49,6 @@ import androidx.compose.ui.unit.dp
 import io.github.duddmeister.weather.data.WeatherRepository
 import io.github.duddmeister.weather.domain.NowConditions
 import io.github.duddmeister.weather.domain.NowcastBuilder
-import io.github.duddmeister.weather.domain.SummaryBuilder
 import io.github.duddmeister.weather.domain.TimeText
 import io.github.duddmeister.weather.domain.conditionsAt
 import io.github.duddmeister.weather.domain.today
@@ -89,9 +88,6 @@ fun WeatherPage(
     val now = remember(snapshot, nowMillis) { snapshot?.conditionsAt(nowMillis) }
     val today = remember(snapshot, nowMillis) { snapshot?.today(nowMillis) }
     val nowcast = remember(snapshot, nowMillis) { snapshot?.let { NowcastBuilder.build(it, nowMillis) } }
-    val summary = remember(snapshot, nowMillis, settings.units, use24h) {
-        snapshot?.let { SummaryBuilder.build(it, nowMillis, settings.units, use24h) }.orEmpty()
-    }
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 64.dp
     val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 88.dp
     val reveal = rememberRevealState(page.location.id)
@@ -134,10 +130,6 @@ fun WeatherPage(
             if (nowcast != null && (nowcast.hasPrecipitation || now.condition.isPrecipitation)) {
                 val o = order++
                 item(key = "nowcast") { Reveal(reveal, "nowcast", o, Modifier.animateItem()) { NowcastCard(nowcast, snapshot, use24h) } }
-            }
-            if (summary.isNotBlank()) {
-                val o = order++
-                item(key = "summary") { Reveal(reveal, "summary", o, Modifier.animateItem()) { SummaryCard(summary) } }
             }
             val hourlyOrder = order++
             item(key = "hourly") { Reveal(reveal, "hourly", hourlyOrder, Modifier.animateItem()) { HourlyCard(snapshot, now, nowMillis, settings, use24h) } }

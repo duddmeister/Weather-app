@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableFloatState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
@@ -42,9 +43,12 @@ import kotlin.random.Random
  * Full-screen animated sky: a gradient for the conditions and time of day, plus stars, sun glow,
  * moon phase, drifting clouds, rain, snow, fog and lightning. Everything is drawn in one layer and
  * only the draw phase runs per frame (no recomposition). Animation pauses when the app isn't visible.
+ *
+ * Behind other screens ([calm]), rain, snow and lightning fade out and the sky then holds still, so
+ * nothing falls across settings or lists.
  */
 @Composable
-fun SkyBackground(scene: SkyScene, animate: Boolean, modifier: Modifier = Modifier) {
+fun SkyBackground(scene: SkyScene, animate: Boolean, calm: Boolean = false, modifier: Modifier = Modifier) {
     val colorSpec = tween<Color>(durationMillis = 1200)
     val floatSpec = tween<Float>(durationMillis = 1200)
     val top by animateColorAsState(scene.palette.top, colorSpec, label = "skyTop")
@@ -55,15 +59,21 @@ fun SkyBackground(scene: SkyScene, animate: Boolean, modifier: Modifier = Modifi
     val moon by animateFloatAsState(scene.moon, floatSpec, label = "moon")
     val clouds by animateFloatAsState(scene.clouds, floatSpec, label = "clouds")
     val darkness by animateFloatAsState(if (scene.darkClouds) 1f else 0f, floatSpec, label = "cloudDarkness")
-    val rain by animateFloatAsState(scene.rain, floatSpec, label = "rain")
-    val snow by animateFloatAsState(scene.snow, floatSpec, label = "snow")
+    // Precipitation clears quickly when another screen opens and returns gently after it closes.
+    val precipitationSpec = if (calm) tween<Float>(durationMillis = 400) else floatSpec
+    val rainState = animateFloatAsState(if (calm) 0f else scene.rain, precipitationSpec, label = "rain")
+    val snowState = animateFloatAsState(if (calm) 0f else scene.snow, precipitationSpec, label = "snow")
+    val rain by rainState
+    val snow by snowState
     val fog by animateFloatAsState(scene.fog, floatSpec, label = "fog")
     val tilt by animateFloatAsState(scene.windTilt, floatSpec, label = "tilt")
     val lowSun = scene.kind == SkyKind.Dawn || scene.kind == SkyKind.Dusk
     val sunOnLeft = scene.kind == SkyKind.Dawn
-    val lightning = scene.lightning
+    val lightning = scene.lightning && !calm
     val moonPhase = scene.moonPhase
-    val time = rememberSkyClock(animate)
+    // Keep falling while it fades out, so it doesn't freeze mid-air.
+    val falling by remember(rainState, snowState) { derivedStateOf { rainState.value > 0.01f || snowState.value > 0.01f } }
+    val time = rememberSkyClock(animate && (!calm || falling))
     val field = remember { ParticleField(seed = 1337) }
 
     Spacer(

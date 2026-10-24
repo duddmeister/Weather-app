@@ -151,7 +151,7 @@ fun NimbusRoot(vm: MainViewModel, launchRequest: LaunchRequest?, onLaunchRequest
 
     CompositionLocalProvider(LocalSkyPalette provides scene.palette) {
         Box(Modifier.fillMaxSize().background(scene.palette.top)) {
-            SkyBackground(scene, animate = state.settings.animatedBackground && !reduceMotion && screen == Screen.Home)
+            SkyBackground(scene, animate = state.settings.animatedBackground && !reduceMotion, calm = screen != Screen.Home)
             AnimatedContent(
                 targetState = screen,
                 transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(220)) },

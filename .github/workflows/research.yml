@@ -1,6 +1,6 @@
 name: Research (temporary)
 
-# Temporary: fetches warning feeds and forecast samples that the development sandbox can't reach,
+# Temporary: surveys warning feeds and forecast samples that the development sandbox can't reach,
 # and publishes them to the ci-screenshots branch for review. Removed before merging.
 on:
   push:
@@ -15,29 +15,47 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Fetch sources
+      - name: Survey every MeteoAlarm country
         run: |
           mkdir -p out && cd out
-          ua="Nimbus weather app (github.com/duddmeister/Weather-app)"
-          get() {
-            local result
-            result=$(curl -sSL --compressed --max-time 60 -A "$ua" -o "$1" -w "%{http_code} %{content_type} %{size_download}" "$2" 2>&1) || result="failed: $result"
-            echo "$1 <- $2: $result" >> index.txt
-          }
-          for country in united-kingdom ireland germany france norway; do
-            get "meteoalarm-$country.json" "https://feeds.meteoalarm.org/api/v1/warnings/feeds-$country"
-          done
-          get meteoalarm-uk-atom.xml "https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-united-kingdom"
-          get meteoalarm-portal.html "https://api.meteoalarm.org/"
-          get meteoalarm-site.html "https://meteoalarm.org/en/"
-          get metoffice-rss-guide.html "https://weather.metoffice.gov.uk/guides/rss"
-          get metoffice-ni.xml "https://www.metoffice.gov.uk/public/data/PWSCache/WarningsRSS/Region/ni"
-          base="https://api.open-meteo.com/v1/forecast?latitude=54.5973&longitude=-5.9301&timezone=auto&forecast_days=3"
-          get om-best.json "$base&hourly=temperature_2m,precipitation,precipitation_probability,weather_code,wind_gusts_10m&minutely_15=precipitation,weather_code&models=best_match"
-          get om-models.json "$base&hourly=temperature_2m,precipitation,weather_code,wind_gusts_10m&models=best_match,ukmo_seamless,ukmo_uk_deterministic_2km,ecmwf_ifs025,icon_seamless,gfs_seamless,knmi_seamless,dmi_seamless,meteofrance_seamless"
-          get om-ukv-meta.json "https://api.open-meteo.com/data/ukmo_uk_deterministic_2km/static/meta.json"
-          get om-docs.html "https://open-meteo.com/en/docs"
-          cat index.txt
+          python3 - <<'PY'
+          import json, urllib.request, gzip, time
+          slugs = ["austria", "belgium", "bosnia-herzegovina", "bulgaria", "croatia", "cyprus", "czechia", "czech-republic",
+                   "denmark", "estonia", "finland", "france", "germany", "greece", "hungary", "iceland", "ireland", "israel",
+                   "italy", "latvia", "lithuania", "luxembourg", "malta", "moldova", "republic-of-moldova", "montenegro",
+                   "netherlands", "north-macedonia", "republic-of-north-macedonia", "norway", "poland", "portugal", "romania",
+                   "serbia", "slovakia", "slovenia", "spain", "sweden", "switzerland", "ukraine", "united-kingdom"]
+          summary = {}
+          for slug in slugs:
+              url = f"https://feeds.meteoalarm.org/api/v1/warnings/feeds-{slug}"
+              req = urllib.request.Request(url, headers={"User-Agent": "Nimbus weather app (github.com/duddmeister/Weather-app)", "Accept-Encoding": "gzip"})
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as r:
+                      raw = r.read()
+                      wire = len(raw)
+                      if r.headers.get("Content-Encoding") == "gzip":
+                          raw = gzip.decompress(raw)
+                      d = json.loads(raw)
+              except Exception as e:
+                  summary[slug] = {"error": str(e)[:120]}
+                  continue
+              poly = codes = 0
+              langs = set()
+              kinds = set()
+              for w in d.get("warnings", []):
+                  for info in w["alert"].get("info", []):
+                      langs.add(info.get("language"))
+                      for ar in info.get("area", []):
+                          if ar.get("polygon"): poly += 1
+                          else: codes += 1
+                          for g in ar.get("geocode") or []: kinds.add(g.get("valueName"))
+              summary[slug] = {"warnings": len(d.get("warnings", [])), "areas_with_polygon": poly, "areas_codes_only": codes,
+                               "code_types": sorted(k for k in kinds if k), "languages": sorted(l for l in langs if l),
+                               "bytes_on_wire": wire, "bytes": len(raw)}
+              time.sleep(0.5)
+          json.dump(summary, open("meteoalarm-survey.json", "w"), indent=1)
+          for k, v in summary.items(): print(k, v)
+          PY
 
       - name: Publish to the ci-screenshots branch
         env:

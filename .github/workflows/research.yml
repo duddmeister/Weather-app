@@ -1,0 +1,52 @@
+name: Research (temporary)
+
+# Temporary: fetches warning feeds and forecast samples that the development sandbox can't reach,
+# and publishes them to the ci-screenshots branch for review. Removed before merging.
+on:
+  push:
+    branches: [claude/android-weather-app-jxwtyy]
+    paths: [.github/workflows/research.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch sources
+        run: |
+          mkdir -p out && cd out
+          ua="Nimbus weather app (github.com/duddmeister/Weather-app)"
+          get() {
+            local result
+            result=$(curl -sSL --compressed --max-time 60 -A "$ua" -o "$1" -w "%{http_code} %{content_type} %{size_download}" "$2" 2>&1) || result="failed: $result"
+            echo "$1 <- $2: $result" >> index.txt
+          }
+          for country in united-kingdom ireland germany france norway; do
+            get "meteoalarm-$country.json" "https://feeds.meteoalarm.org/api/v1/warnings/feeds-$country"
+          done
+          get meteoalarm-uk-atom.xml "https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-united-kingdom"
+          get meteoalarm-portal.html "https://api.meteoalarm.org/"
+          get meteoalarm-site.html "https://meteoalarm.org/en/"
+          get metoffice-rss-guide.html "https://weather.metoffice.gov.uk/guides/rss"
+          get metoffice-ni.xml "https://www.metoffice.gov.uk/public/data/PWSCache/WarningsRSS/Region/ni"
+          base="https://api.open-meteo.com/v1/forecast?latitude=54.5973&longitude=-5.9301&timezone=auto&forecast_days=3"
+          get om-best.json "$base&hourly=temperature_2m,precipitation,precipitation_probability,weather_code,wind_gusts_10m&minutely_15=precipitation,weather_code&models=best_match"
+          get om-models.json "$base&hourly=temperature_2m,precipitation,weather_code,wind_gusts_10m&models=best_match,ukmo_seamless,ukmo_uk_deterministic_2km,ecmwf_ifs025,icon_seamless,gfs_seamless,knmi_seamless,dmi_seamless,meteofrance_seamless"
+          get om-ukv-meta.json "https://api.open-meteo.com/data/ukmo_uk_deterministic_2km/static/meta.json"
+          get om-docs.html "https://open-meteo.com/en/docs"
+          cat index.txt
+
+      - name: Publish to the ci-screenshots branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd out
+          git init -q -b ci-screenshots
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Research fetch for $GITHUB_SHA"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ci-screenshots

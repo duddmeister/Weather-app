@@ -8,6 +8,7 @@ import io.github.duddmeister.weather.data.remote.NwsClient
 import io.github.duddmeister.weather.data.remote.OpenMeteoClient
 import io.github.duddmeister.weather.data.remote.toAirQuality
 import io.github.duddmeister.weather.data.remote.toSnapshot
+import io.github.duddmeister.weather.domain.withMetOffice
 import io.github.duddmeister.weather.model.SavedLocation
 import io.github.duddmeister.weather.model.WeatherSnapshot
 import kotlinx.coroutines.CancellationException
@@ -41,6 +42,8 @@ class WeatherRepository(
     private val openMeteo: OpenMeteoClient,
     private val nws: NwsClient,
     private val meteoAlarm: MeteoAlarmClient,
+    /** Forecasts from the user's own Met Office key, for the UK and Ireland. */
+    private val metOffice: MetOfficeForecasts?,
     private val cache: WeatherCache,
     scope: CoroutineScope,
     private val clock: () -> Long = System::currentTimeMillis,
@@ -133,7 +136,12 @@ class WeatherRepository(
                 else -> null
             }
         }
-        val base = forecast.await().toSnapshot(location, now)
+        val metOfficeForecast = async {
+            metOffice?.let { optional("Met Office forecast") { it.forecastFor(location, reusable?.metOffice, requested) } }
+        }
+        val base = forecast.await().toSnapshot(location, now).let { snapshot ->
+            metOfficeForecast.await()?.let(snapshot::withMetOffice) ?: snapshot
+        }
         val fetchedAlerts = alerts.await()
         base.copy(
             airQuality = air.await() ?: reusable?.airQuality,

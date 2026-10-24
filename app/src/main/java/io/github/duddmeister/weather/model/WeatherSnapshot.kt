@@ -28,6 +28,8 @@ data class WeatherSnapshot(
     val alertsSource: String? = null,
     /** Epoch millis of the last successful alert fetch; warnings feeds are checked less often than forecasts. */
     val alertsFetchedAt: Long? = null,
+    /** The Met Office's forecast, when it's been laid over this one (UK and Ireland, with the user's key). */
+    val metOffice: MetOfficeData? = null,
 )
 
 @Serializable

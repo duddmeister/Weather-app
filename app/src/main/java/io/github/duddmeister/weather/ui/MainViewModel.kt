@@ -9,6 +9,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.duddmeister.weather.container
+import io.github.duddmeister.weather.data.MetOfficeState
 import io.github.duddmeister.weather.data.remote.GeocodingResult
 import io.github.duddmeister.weather.data.remote.toSavedLocation
 import io.github.duddmeister.weather.model.AppSettings
@@ -225,6 +226,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun moveLocation(id: String, delta: Int) {
         viewModelScope.launch { c.locations.move(id, delta) }
+    }
+
+    // --- Met Office ---
+
+    val metOfficeState: StateFlow<MetOfficeState> = c.metOffice.state
+
+    /** Saves (or with null, removes) the Met Office key, then refreshes every place so it takes effect. */
+    fun setMetOfficeKey(key: String?) {
+        viewModelScope.launch {
+            c.metOffice.setKey(key)
+            c.refresher.refreshForeground(force = true)
+        }
     }
 
     // --- Updates ---

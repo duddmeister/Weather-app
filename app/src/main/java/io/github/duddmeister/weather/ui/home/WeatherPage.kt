@@ -276,6 +276,7 @@ private fun Footer(page: LocationPage, nowMillis: Long, use24h: Boolean) {
             modifier = Modifier.clickable { uri.openUri("https://open-meteo.com/") }.padding(4.dp),
         )
         val sources = buildList {
+            if (snapshot.metOffice != null) add("Forecast: Met Office")
             if (snapshot.airQuality != null) add("Air quality: Copernicus CAMS")
             when (snapshot.alertsSource ?: WeatherRepository.SOURCE_NWS.takeIf { snapshot.alertsSupported }) {
                 WeatherRepository.SOURCE_NWS -> add("Alerts: National Weather Service")

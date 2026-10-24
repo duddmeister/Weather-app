@@ -67,6 +67,7 @@ fun NimbusRoot(vm: MainViewModel, launchRequest: LaunchRequest?, onLaunchRequest
     val updateState by vm.updateState.collectAsStateWithLifecycle()
     val searchState by vm.searchState.collectAsStateWithLifecycle()
     val needsInstallPermission by vm.needsInstallPermission.collectAsStateWithLifecycle()
+    val metOffice by vm.metOfficeState.collectAsStateWithLifecycle()
 
     var screen by rememberSaveable { mutableStateOf(Screen.Home) }
     var placesFromOnboarding by rememberSaveable { mutableStateOf(false) }
@@ -207,6 +208,7 @@ fun NimbusRoot(vm: MainViewModel, launchRequest: LaunchRequest?, onLaunchRequest
                             releasesUrl = vm.releasesPageUrl,
                             hasBackgroundLocation = state.permissions.backgroundLocation,
                             unrestrictedBattery = state.permissions.unrestrictedBattery,
+                            metOffice = metOffice,
                             onBack = { screen = Screen.Home },
                             onChange = vm::updateSettings,
                             onBackgroundLocation = { enabled ->
@@ -228,6 +230,7 @@ fun NimbusRoot(vm: MainViewModel, launchRequest: LaunchRequest?, onLaunchRequest
                             },
                             onCheckForUpdates = vm::checkForUpdates,
                             onOpenUpdate = { showUpdate = true },
+                            onMetOfficeKey = vm::setMetOfficeKey,
                         )
                     }
                 }

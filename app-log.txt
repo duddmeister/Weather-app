@@ -1,0 +1,37 @@
+10-24 16:11:35.361  6086  6122 I Nimbus/RefreshWorker: Background refresh (periodic, io.github.duddmeister.weather.work.RefreshWorker) ok=true attempt=0
+10-24 16:11:37.130  6086  6086 I Nimbus/LocationRepository: Current location: New York
+10-24 16:11:37.857  6086  6086 I Nimbus/WeatherRepository: Updated New York: 13.5°C, 360 hours
+10-24 16:11:46.631  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:11:48.228  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:11:49.213  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:11:49.650  6086  6086 I Nimbus/WeatherRepository: Updated New York: 13.5°C, 360 hours
+10-24 16:11:50.734  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:11:53.800  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:11:56.826  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:11:59.957  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:12:03.038  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:12:06.088  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:12:09.529  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:12:12.812  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:12:16.781  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:12:22.290  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:12:31.119  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:12:31.953  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:12:35.229  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:12:38.403  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:10:38.407  2445  2525 I Nimbus/RefreshWorker: Background refresh (periodic, io.github.duddmeister.weather.work.RefreshWorker) ok=true attempt=0
+10-24 16:11:04.388  4899  4921 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+10-24 16:11:05.306  5069  5084 I AndroidRuntime: VM exiting with result code 0, cleanup skipped.
+10-24 16:11:08.475  2445  2445 I Nimbus/LocationRepository: Current location: New York
+10-24 16:11:09.610  2445  2445 I Nimbus/WeatherRepository: Updated New York: 13.5°C, 360 hours
+10-24 16:13:10.205  6943  6943 I Nimbus/UpdateManager: Install status 0 INSTALL_SUCCEEDED
+10-24 16:12:51.571  6086  6086 I Nimbus/WidgetHost: Pressed refresh on widget 2
+10-24 16:12:51.572  6086  6086 I Nimbus/WidgetHost: Pressed refresh on widget 3
+10-24 16:12:51.574  6086  6086 I Nimbus/WidgetHost: Pressed refresh on widget 4
+10-24 16:12:51.575  6086  6086 I Nimbus/WidgetHost: Pressed refresh on widget 5
+10-24 16:12:52.820  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy
+10-24 16:12:53.785  6086  6116 I Nimbus/WeatherRepository: Updated New York: 13.5°C, 360 hours
+10-24 16:12:55.267  6086  6817 I Nimbus/WeatherRepository: Updated New York: 13.5°C, 360 hours
+10-24 16:12:56.896  6086  6797 I Nimbus/WeatherRepository: Updated New York: 13.5°C, 360 hours
+10-24 16:12:58.545  6086  6797 I Nimbus/WeatherRepository: Updated New York: 13.5°C, 360 hours
+10-24 16:13:03.704  6086  6086 I Nimbus/Snapshot: Snapshot by pixel copy

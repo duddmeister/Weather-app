@@ -80,6 +80,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    permissions:
+      contents: write # TEMPORARY: publishes screenshots for review
     steps:
       - uses: actions/checkout@v4
 
@@ -112,6 +114,22 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
           script: bash .github/scripts/smoke-test.sh apks smoke
+
+      # TEMPORARY: screenshots for review, removed before merging.
+      - name: Publish screenshots for review
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p review && cp smoke/thumbs/*.jpg review/ 2>/dev/null || true
+          cp smoke/1*-settings*.png review/ 2>/dev/null || true
+          cd review
+          git init -q -b ci-screenshots
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Smoke test screenshots for ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ci-screenshots
 
       - uses: actions/upload-artifact@v4
         if: always()

@@ -11,6 +11,10 @@ PKG=io.github.duddmeister.weather
 DEBUG_PKG=$PKG.debug
 mkdir -p "$OUT"
 
+# Where the emulator says it is (longitude, latitude); New York unless the workflow sets another place.
+SMOKE_LON="${SMOKE_LON:--74.0060}"
+SMOKE_LAT="${SMOKE_LAT:-40.7128}"
+
 adb_() { timeout 60 adb "$@"; }
 
 update_status=0
@@ -137,7 +141,7 @@ walk() {
   local package="$1" capture="${2:-}"
   adb_ logcat -c
   launch "$package"
-  for _ in 1 2 3; do adb_ emu geo fix -74.0060 40.7128 > /dev/null 2>&1; sleep 2; done
+  for _ in 1 2 3; do adb_ emu geo fix "$SMOKE_LON" "$SMOKE_LAT" > /dev/null 2>&1; sleep 2; done
   wait_for_forecast "$package"
   check_emulator "forecast loaded in $package"
 
@@ -224,7 +228,7 @@ if [ "${IDLE_SECONDS:-0}" -gt 0 ]; then
 fi
 adb_ shell settings put secure location_mode 3 > /dev/null 2>&1 || true
 adb_ shell cmd location set-location-enabled true > /dev/null 2>&1 || true
-for _ in 1 2 3; do adb_ emu geo fix -74.0060 40.7128 > /dev/null 2>&1; sleep 1; done
+for _ in 1 2 3; do adb_ emu geo fix "$SMOKE_LON" "$SMOKE_LAT" > /dev/null 2>&1; sleep 1; done
 
 echo "::group::Release build"
 adb_ install -r -g "$APK_DIR/release/app-release.apk"
@@ -259,7 +263,7 @@ adb_ logcat -c
 adb_ shell am start -W -n "$DEBUG_PKG/$PKG.WidgetHostActivity" > /dev/null
 snap 17-live-widgets 8
 snap 17-live-widgets-b 0.3
-compare_frames 17-live-widgets 17-live-widgets-b "live widgets (only moves if New York's weather has effects)"
+compare_frames 17-live-widgets 17-live-widgets-b "live widgets (only moves if the weather there has effects)"
 adb_ logcat -c
 adb_ shell am start -n "$DEBUG_PKG/$PKG.WidgetHostActivity" -a "$PKG.debug.PRESS_REFRESH" > /dev/null
 snap 18-live-widgets-refreshing 1

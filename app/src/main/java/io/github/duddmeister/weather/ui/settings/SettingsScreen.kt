@@ -154,7 +154,11 @@ fun SettingsScreen(
                         onNotificationToggle(on) { it.copy(precipitationAlerts = on) }
                     }
                     Divider()
-                    Toggle("Severe weather alerts", "Watches and warnings from the National Weather Service (US).", settings.severeAlerts) { on ->
+                    Toggle(
+                        "Severe weather alerts",
+                        "Official warnings for your places: the Met Office and other European services, and the US National Weather Service.",
+                        settings.severeAlerts,
+                    ) { on ->
                         onNotificationToggle(on) { it.copy(severeAlerts = on) }
                     }
                     Divider()
@@ -198,6 +202,7 @@ fun SettingsScreen(
                     Divider()
                     LinkRow("Release notes & downloads") { uri.openUri(releasesUrl) }
                     LinkRow("Weather data: Open-Meteo.com") { uri.openUri("https://open-meteo.com/") }
+                    LinkRow("Warnings: MeteoAlarm (CC BY 4.0)") { uri.openUri("https://meteoalarm.org/") }
                     LinkRow("Alerts: National Weather Service") { uri.openUri("https://www.weather.gov/") }
                 }
             }

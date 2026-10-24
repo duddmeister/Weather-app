@@ -3,6 +3,7 @@ package io.github.duddmeister.weather
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
 import android.os.Build
 import android.util.Log
 import androidx.core.content.pm.ShortcutInfoCompat
@@ -19,6 +20,7 @@ import io.github.duddmeister.weather.data.local.WeatherCache
 import io.github.duddmeister.weather.data.location.LocationProvider
 import io.github.duddmeister.weather.data.location.PlaceResolver
 import io.github.duddmeister.weather.data.remote.GitHubReleasesClient
+import io.github.duddmeister.weather.data.remote.MeteoAlarmClient
 import io.github.duddmeister.weather.data.remote.NwsClient
 import io.github.duddmeister.weather.data.remote.OpenMeteoClient
 import io.github.duddmeister.weather.data.remote.ReverseGeocodeClient
@@ -75,7 +77,15 @@ class AppContainer(private val app: Application) {
     private val nws = NwsClient(http)
 
     val settingsStore = SettingsStore(app, UnitPrefs.defaultsFor(Locale.getDefault().country))
-    val repository = WeatherRepository(openMeteo, nws, WeatherCache(app), appScope)
+    private val connectivity = app.getSystemService(ConnectivityManager::class.java)
+    val repository = WeatherRepository(
+        openMeteo = openMeteo,
+        nws = nws,
+        meteoAlarm = MeteoAlarmClient(http),
+        cache = WeatherCache(app),
+        scope = appScope,
+        isMetered = { connectivity?.isActiveNetworkMetered ?: true },
+    )
     val locations = LocationRepository(settingsStore, LocationProvider(app), PlaceResolver(app, ReverseGeocodeClient(http)))
     val refresher = WeatherRefresher(app, settingsStore, locations, repository, WeatherNotifier(app, settingsStore))
     val updates = UpdateManager(

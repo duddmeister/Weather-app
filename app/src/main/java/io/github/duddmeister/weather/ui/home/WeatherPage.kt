@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.github.duddmeister.weather.data.WeatherRepository
 import io.github.duddmeister.weather.domain.NowConditions
 import io.github.duddmeister.weather.domain.NowcastBuilder
 import io.github.duddmeister.weather.domain.SummaryBuilder
@@ -284,7 +285,10 @@ private fun Footer(page: LocationPage, nowMillis: Long, use24h: Boolean) {
         )
         val sources = buildList {
             if (snapshot.airQuality != null) add("Air quality: Copernicus CAMS")
-            if (snapshot.alertsSupported) add("Alerts: National Weather Service")
+            when (snapshot.alertsSource ?: WeatherRepository.SOURCE_NWS.takeIf { snapshot.alertsSupported }) {
+                WeatherRepository.SOURCE_NWS -> add("Alerts: National Weather Service")
+                WeatherRepository.SOURCE_METEOALARM -> add("Warnings: MeteoAlarm")
+            }
         }
         if (sources.isNotEmpty()) {
             Text(sources.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = SkyText.Tertiary, textAlign = TextAlign.Center)

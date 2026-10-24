@@ -1,8 +1,10 @@
 package io.github.duddmeister.weather
 
+import io.github.duddmeister.weather.core.AppJson
 import io.github.duddmeister.weather.core.HttpException
 import io.github.duddmeister.weather.core.HttpFetcher
 import io.github.duddmeister.weather.core.createHttpClient
+import io.github.duddmeister.weather.data.remote.MeteoAlarmClient
 import io.github.duddmeister.weather.data.remote.NwsClient
 import io.github.duddmeister.weather.data.remote.OpenMeteoClient
 import io.github.duddmeister.weather.data.remote.ReverseGeocodeClient
@@ -92,5 +94,20 @@ class LiveApiTest {
     fun nwsAlerts() {
         val alerts = live { NwsClient(http).activeAlerts(newYork.latitude, newYork.longitude, System.currentTimeMillis() / 1000) }
         println("NWS alerts for New York: ${alerts.map { it.event }}")
+    }
+
+    @Test
+    fun meteoAlarmWarnings() {
+        // Every covered country's feed parses; the UK's warnings must still come with polygons to match against.
+        for (slug in listOf("united-kingdom", "norway", "sweden", "estonia", "slovenia", "luxembourg", "ukraine")) {
+            val warnings = live { MeteoAlarmClient.parseFeed(AppJson, http.getBody(MeteoAlarmClient.feedUrl(slug))) }
+            val areas = warnings.flatMap { warning -> warning.infos.flatMap { it.areas } }
+            println("MeteoAlarm $slug: ${warnings.size} warnings, ${areas.count { it.polygons.isEmpty() }} of ${areas.size} areas without a polygon")
+            if (slug == "united-kingdom") assertTrue("UK warnings without polygons", areas.all { it.polygons.isNotEmpty() })
+        }
+        val now = System.currentTimeMillis() / 1000
+        val belfast = live { MeteoAlarmClient(http).warningsAt("GB", 54.5973, -5.9301, now, "en") }
+        println("Warnings for Belfast: ${belfast?.map { "${it.event} (${it.sender})" }}")
+        assertNotNull(belfast)
     }
 }

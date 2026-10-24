@@ -6,6 +6,8 @@ import androidx.core.app.NotificationCompat
 import io.github.duddmeister.weather.data.local.SettingsStore
 import io.github.duddmeister.weather.domain.NowcastBuilder
 import io.github.duddmeister.weather.domain.TimeText
+import io.github.duddmeister.weather.domain.isUpcoming
+import io.github.duddmeister.weather.domain.window
 import io.github.duddmeister.weather.domain.zoneId
 import io.github.duddmeister.weather.model.AppSettings
 import io.github.duddmeister.weather.model.SavedLocation
@@ -71,12 +73,17 @@ class WeatherNotifier(
         val fresh = active.filter { (_, alert) -> alert.id !in alreadyNotified && alert.severityRank >= 2 }
         for ((location, alert) in fresh) {
             val snapshot = snapshots[location.id] ?: continue
-            val until = alert.endTime?.let { " until " + TimeText(snapshot.zoneId(), use24h(settings)).timeWithDay(it, nowMillis) }.orEmpty()
+            val window = alert.window(TimeText(snapshot.zoneId(), use24h(settings)), nowMillis)
+            val timing = when {
+                window == null -> "In effect"
+                alert.isUpcoming(nowMillis) -> window
+                else -> "In effect " + window.replaceFirstChar { it.lowercase() }
+            }
             val details = alert.headline ?: alert.description?.lineSequence()?.firstOrNull { it.isNotBlank() }
             val builder = Notifications.builder(context, Notifications.CHANNEL_SEVERE)
                 .setContentTitle("${alert.event} · ${location.name}")
-                .setContentText("In effect$until")
-                .setStyle(NotificationCompat.BigTextStyle().bigText(listOfNotNull("In effect$until.", details).joinToString("\n")))
+                .setContentText(timing)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(listOfNotNull("$timing.", details).joinToString("\n")))
                 .setContentIntent(Notifications.openAppIntent(context, Notifications.alertId(alert.id), locationId = location.id))
                 .setPriority(if (alert.severityRank >= 3) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
                 .setCategory(NotificationCompat.CATEGORY_EVENT)

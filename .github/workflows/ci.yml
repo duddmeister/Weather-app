@@ -78,6 +78,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -99,6 +101,9 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         env:
           GH_TOKEN: ${{ github.token }}
+          # Temporary: run in Belfast to review the Met Office warnings.
+          SMOKE_LON: "-5.9301"
+          SMOKE_LAT: "54.5973"
         with:
           # API 34 images crash on the hosted runners' software GPU within a minute; API 31 is stable
           # and still covers prompt-free self-updates (Android 12+).
@@ -117,3 +122,22 @@ jobs:
           name: smoke-test-screenshots
           path: smoke/
           retention-days: 14
+
+      # Temporary, for reviewing UI changes during development: publishes the thumbnails to a scratch branch.
+      - name: Publish screenshots to the ci-screenshots branch
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -d smoke/thumbs ] || exit 0
+          tmp=$(mktemp -d)
+          cp smoke/thumbs/*.jpg "$tmp"/ 2>/dev/null || true
+          cp smoke/1[4-9]-*.png "$tmp"/ 2>/dev/null || true
+          cp smoke/app-log.txt "$tmp"/ 2>/dev/null || true
+          cd "$tmp"
+          git init -q -b ci-screenshots
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Smoke test screenshots for $GITHUB_SHA"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ci-screenshots

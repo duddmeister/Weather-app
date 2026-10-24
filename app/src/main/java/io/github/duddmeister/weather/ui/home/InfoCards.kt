@@ -39,7 +39,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.unit.dp
 import io.github.duddmeister.weather.domain.Nowcast
+import io.github.duddmeister.weather.data.WeatherRepository
 import io.github.duddmeister.weather.domain.TimeText
+import io.github.duddmeister.weather.domain.window
 import io.github.duddmeister.weather.domain.zoneId
 import io.github.duddmeister.weather.model.PrecipType
 import io.github.duddmeister.weather.model.WeatherAlert
@@ -50,18 +52,26 @@ import io.github.duddmeister.weather.ui.components.rememberAppearProgress
 import io.github.duddmeister.weather.ui.theme.SkyText
 import kotlin.math.min
 
-private fun severityColor(alert: WeatherAlert): Color = when (alert.severityRank) {
-    4 -> Color(0xFFE040FB)
-    3 -> Color(0xFFFF5252)
-    2 -> Color(0xFFFFA726)
-    else -> Color(0xFFFFEE58)
+private fun severityColor(alert: WeatherAlert): Color = when (alert.level) {
+    // Colour-coded warnings (Met Office and other European services) keep their own colours.
+    4 -> Color(0xFFFF5252)
+    3 -> Color(0xFFFFA726)
+    2 -> Color(0xFFFFEE58)
+    else -> when (alert.severityRank) {
+        4 -> Color(0xFFE040FB)
+        3 -> Color(0xFFFF5252)
+        2 -> Color(0xFFFFA726)
+        else -> Color(0xFFFFEE58)
+    }
 }
 
 @Composable
 fun AlertsCard(snapshot: WeatherSnapshot, nowMillis: Long, use24h: Boolean) {
     val text = remember(snapshot.timezone, use24h) { TimeText(snapshot.zoneId(), use24h) }
     GlassCard(modifier = Modifier.fillMaxWidth()) {
-        CardLabel(Icons.Rounded.Warning, if (snapshot.alerts.size == 1) "Weather alert" else "${snapshot.alerts.size} weather alerts")
+        // The US service issues "alerts" (watches, warnings, advisories); European services issue warnings.
+        val noun = if (snapshot.alertsSource == WeatherRepository.SOURCE_METEOALARM) "warning" else "alert"
+        CardLabel(Icons.Rounded.Warning, if (snapshot.alerts.size == 1) "Weather $noun" else "${snapshot.alerts.size} weather ${noun}s")
         snapshot.alerts.forEachIndexed { index, alert ->
             Spacer(Modifier.height(if (index == 0) 10.dp else 14.dp))
             AlertRow(alert, text, nowMillis)
@@ -78,8 +88,7 @@ private fun AlertRow(alert: WeatherAlert, text: TimeText, nowMillis: Long) {
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(alert.event, style = MaterialTheme.typography.titleMedium, color = Color.White)
-                val until = alert.endTime?.let { "Until " + text.timeWithDay(it, nowMillis) }
-                val details = listOfNotNull(until, alert.sender).joinToString(" · ")
+                val details = listOfNotNull(alert.window(text, nowMillis), alert.sender).joinToString(" · ")
                 if (details.isNotBlank()) Text(details, style = MaterialTheme.typography.bodySmall, color = SkyText.Secondary)
             }
             Icon(

@@ -3,6 +3,7 @@ package io.github.duddmeister.weather.data
 import io.github.duddmeister.weather.core.AppLog
 import io.github.duddmeister.weather.core.HttpException
 import io.github.duddmeister.weather.data.local.WeatherCache
+import io.github.duddmeister.weather.data.remote.MeteoAlarmClient
 import io.github.duddmeister.weather.data.remote.NwsClient
 import io.github.duddmeister.weather.data.remote.OpenMeteoClient
 import io.github.duddmeister.weather.data.remote.toAirQuality
@@ -23,6 +24,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
 sealed interface RefreshOutcome {
@@ -38,9 +40,13 @@ sealed interface RefreshOutcome {
 class WeatherRepository(
     private val openMeteo: OpenMeteoClient,
     private val nws: NwsClient,
+    private val meteoAlarm: MeteoAlarmClient,
     private val cache: WeatherCache,
     scope: CoroutineScope,
     private val clock: () -> Long = System::currentTimeMillis,
+    /** Whether the current connection is metered (mobile data), to go easy on large downloads. */
+    private val isMetered: () -> Boolean = { false },
+    private val language: () -> String = { Locale.getDefault().language },
 ) {
     private val _snapshots = MutableStateFlow<Map<String, WeatherSnapshot>>(emptyMap())
     val snapshots: StateFlow<Map<String, WeatherSnapshot>> = _snapshots.asStateFlow()
@@ -83,7 +89,7 @@ class WeatherRepository(
             }
             _refreshing.update { it + location.id }
             try {
-                val snapshot = fetch(location, existing)
+                val snapshot = fetch(location, existing, requested = force)
                 cache.save(snapshot)
                 _snapshots.update { it + (location.id to snapshot) }
                 _errors.update { it - location.id }
@@ -101,26 +107,57 @@ class WeatherRepository(
         }
     }
 
-    private suspend fun fetch(location: SavedLocation, previous: WeatherSnapshot?): WeatherSnapshot = coroutineScope {
+    /** [requested]: someone asked for this refresh, so warnings may be checked sooner. */
+    private suspend fun fetch(location: SavedLocation, previous: WeatherSnapshot?, requested: Boolean): WeatherSnapshot = coroutineScope {
         val now = clock()
+        val reusable = previous?.takeIf { it.isFor(location) && now - it.fetchedAt < 3 * 3600_000L }
         val forecast = async { openMeteo.forecast(location.latitude, location.longitude) }
         val air = async {
             optional("air quality") { openMeteo.airQuality(location.latitude, location.longitude).toAirQuality() }
         }
+        val source = when {
+            location.isUnitedStates -> SOURCE_NWS
+            MeteoAlarmClient.covers(location.countryCode) -> SOURCE_METEOALARM
+            else -> null
+        }
         val alerts = async {
-            if (location.isUnitedStates) {
-                optional("alerts") { nws.activeAlerts(location.latitude, location.longitude, now / 1000) }
-            } else {
-                null
+            when (source) {
+                SOURCE_NWS -> optional("alerts") { nws.activeAlerts(location.latitude, location.longitude, now / 1000) }
+                SOURCE_METEOALARM -> if (warningsDue(reusable, now, requested)) {
+                    optional("warnings") {
+                        meteoAlarm.warningsAt(location.countryCode, location.latitude, location.longitude, now / 1000, language())
+                    }
+                } else {
+                    null
+                }
+                else -> null
             }
         }
         val base = forecast.await().toSnapshot(location, now)
-        val reusable = previous?.takeIf { it.isFor(location) && now - it.fetchedAt < 3 * 3600_000L }
+        val fetchedAlerts = alerts.await()
         base.copy(
             airQuality = air.await() ?: reusable?.airQuality,
-            alerts = alerts.await() ?: reusable?.alerts.orEmpty().filter { (it.endTime ?: Long.MAX_VALUE) > now / 1000 },
-            alertsSupported = location.isUnitedStates,
+            alerts = fetchedAlerts ?: reusable?.alerts.orEmpty().filter { (it.endTime ?: Long.MAX_VALUE) > now / 1000 },
+            alertsSupported = source != null,
+            alertsSource = source,
+            alertsFetchedAt = if (fetchedAlerts != null) now else reusable?.alertsFetchedAt,
         )
+    }
+
+    /**
+     * MeteoAlarm serves a whole country's warnings uncompressed and without caching headers (the UK's
+     * is about 300 KB), so it's checked at most every half hour on Wi-Fi and every two hours on mobile
+     * data, or after ten minutes when someone asks for a refresh. Warnings are mostly issued hours or
+     * days ahead.
+     */
+    private fun warningsDue(previous: WeatherSnapshot?, now: Long, requested: Boolean): Boolean {
+        val last = previous?.takeIf { it.alertsSource == SOURCE_METEOALARM }?.alertsFetchedAt ?: return true
+        val interval = when {
+            requested -> 10 * 60_000L
+            isMetered() -> 2 * 3600_000L
+            else -> 30 * 60_000L
+        }
+        return now - last >= interval
     }
 
     private suspend fun <T> optional(what: String, block: suspend () -> T): T? = try {
@@ -143,6 +180,8 @@ class WeatherRepository(
 
     companion object {
         private const val TAG = "WeatherRepository"
+        const val SOURCE_NWS = "National Weather Service"
+        const val SOURCE_METEOALARM = "MeteoAlarm"
         const val DEFAULT_MAX_AGE = 10 * 60 * 1000L
 
         fun userMessage(e: Throwable): String = when (e) {

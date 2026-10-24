@@ -1,0 +1,232 @@
+{
+ "warnings": [
+  {
+   "alert": {
+    "code": [
+     "MCP:v2.0"
+    ],
+    "identifier": "2.49.0.0.826.0.GB_261023090032_43d25d86.v2.0.W",
+    "incidents": "Update",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "Northern Ireland",
+        "polygon": [
+         "54.0036,-6.0344 54.0445,-6.1176 54.0833,-6.2156 54.1112,-6.2692 54.1289,-6.2879 54.1353,-6.3421 54.1174,-6.3686 54.0952,-6.3901 54.0806,-6.4267 54.078,-6.4981 54.0516,-6.613 54.1431,-6.6268 54.2029,-6.6534 54.2091,-6.7004 54.2015,-6.7373 54.2572,-6.8086 54.3203,-6.8438 54.3874,-6.9101 54.4269,-7.0289 54.3826,-7.1107 54.3611,-7.1377 54.3476,-7.1707 54.3286,-7.2066 54.2902,-7.2214 54.2361,-7.16 54.2277,-7.2046 54.1844,-7.2628 54.131,-7.3252 54.157,-7.4277 54.1452,-7.54 54.177,-7.6402 54.2118,-7.7469 54.2353,-7.8457 54.2882,-7.878 54.3315,-7.9477 54.4061,-8.0893 54.4661,-8.1376 54.4842,-8.0461 54.525,-8.0089 54.5266,-7.9011 54.5627,-7.7651 54.6325,-7.7329 54.6705,-7.9061 54.7142,-7.859 54.7162,-7.744 54.7222,-7.6614 54.7434,-7.6216 54.742,-7.5373 54.784,-7.5275 54.8164,-7.4989 54.8572,-7.4556 54.9359,-7.4227 55.0046,-7.3864 55.0332,-7.3379 55.0521,-7.281 55.0748,-7.2182 55.1106,-7.1517 55.163,-7.0639 55.215,-6.903 55.3003,-6.579 55.2747,-6.0236 54.332,-5.3751 54.031,-5.8649 54.0036,-6.0344"
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Possible",
+      "description": "Information on update: Changes to start and end the warning earlier. Strong winds will spread across Northern Ireland during Saturday. Initially strong southerly winds will develop on Saturday morning, before stronger we",
+      "event": "Yellow wind warning",
+      "expires": "2026-10-25T12:00:00+00:00",
+      "headline": "Storm Boelo bringing a very windy spell this weekend with some disruption possible across parts of Northern Ireland. : UPDATED",
+      "instruction": "Prepare to protect your property and people from injury. Check for loose items outside your home and plan how you could secure them. Items include: bins, garden furniture, trampolines, tents, sheds, and fences.\n\nPeople c",
+      "language": "en-GB",
+      "onset": "2026-10-24T09:00:00+00:00",
+      "parameter": [
+       {
+        "value": "2; Yellow; Moderate",
+        "valueName": "awareness_level"
+       },
+       {
+        "value": "1; Wind",
+        "valueName": "awareness_type"
+       }
+      ],
+      "responseType": [
+       "Prepare"
+      ],
+      "senderName": "UK Met Office",
+      "severity": "Moderate",
+      "urgency": "Future",
+      "web": "https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings"
+     }
+    ],
+    "msgType": "Update",
+    "references": "https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings,2.49.0.0.826.0.GB_261022095919_43d25d86.v1.0.W,2026-10-22T09:59:19+00:00",
+    "scope": "Public",
+    "sender": "https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings",
+    "sent": "2026-10-23T09:00:32+00:00",
+    "source": "2.49.0.0.826.0.GB",
+    "status": "Actual"
+   },
+   "uuid": "ef662167-4a8f-45af-9935-3f8b3e2fdda4"
+  },
+  {
+   "alert": {
+    "code": [
+     "MCP:v2.0"
+    ],
+    "identifier": "2.49.0.0.826.0.GB_261024074307_3df474a5.v1.0.W",
+    "incidents": "Alert",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "Northern Ireland",
+        "polygon": [
+         "54.7503,-5.6311 54.7468,-5.6497 54.7502,-5.6793 54.7596,-5.7185 54.7741,-5.766 54.7929,-5.8204 54.8149,-5.8805 54.8394,-5.9447 54.8653,-6.0118 54.8919,-6.0805 54.9181,-6.1493 54.9432,-6.2169 54.9661,-6.282 54.9861,-6.3432 55.0023,-6.3992 55.0137,-6.4469 55.0243,-6.4985 55.0342,-6.5528 55.0434,-6.6087 55.0522,-6.6652 55.0605,-6.721 55.0686,-6.7752 55.0765,-6.8266 55.0844,-6.8742 55.0923,-6.9168 55.1005,-6.9533 55.109,-6.9826 55.1179,-7.0036 55.1274,-7.0153 55.1317,-7.0174 55.1362,-7.0179 55.1408,-7.0171 55.1455,-7.0151 55.1502,-7.012 55.155,-7.0079 55.1597,-7.003 55.1643,-6.9974 55.1689,-6.9913 55.1733,-6.9847 55.1776,-6.9779 55.1817,-6.9709 55.1856,-6.9639 55.1892,-6.957 55.1933,-6.9484 55.1969,-6.9393 55.2002,-6.9295 55.2032,-6.9192 55.206,-6.9084 55.2086,-6.897 55.211,-6.885 55.2134,-6.8725 55.2158,-6.8594 55.2182,-6.8459 55.2208,-6.8318 55.2235,-6.8171 55.2264,-6.802 55.2296,-6.7863 55.237,-6.7556 55.2464,-6.7213 55.2575,-6.6839 55.2697,-6.6439 55.2825,-6.6019 55.2953,-6.5582 55.3077,-6.5136 55.319,-6.4684 55.3288,-6.4231 55.3366,-6.3784 55.3418,-6.3346 55.3439,-6.2924 55.3423,-6.2522 55.3366,-6.2145 55.3191,-6.1614 55.2901,-6.1042 55.2515,-6.0444 55.2051,-5.9835 55.1531,-5.923 55.0973,-5.8642 55.0396,-5.8086 54.982,-5.7577 54.9266,-5.7129 54.8752,-5.6756 54.8299,-5.6474 54.7926,-5.6296 54.7654,-5.6237 54.7503,-5.6311"
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Very strong westerly winds associated with Storm Boelo are expected with fairly widespread gusts of 60 to 70 mph and gusts to 80 mph in exposed coastal areas. While strong winds are expected across a wider area with a ye",
+      "event": "Amber wind warning",
+      "expires": "2026-10-25T10:00:00+00:00",
+      "headline": "The strongest winds from Storm Boelo are expected Saturday evening and Sunday morning.",
+      "instruction": "Driving in these conditions can be dangerous, for yourself and other road users. If you must drive, you can do this more safely by taking the following actions; drive slowly to minimise the impact of wind gusts, be aware",
+      "language": "en-GB",
+      "onset": "2026-10-24T20:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Orange; Severe",
+        "valueName": "awareness_level"
+       },
+       {
+        "value": "1; Wind",
+        "valueName": "awareness_type"
+       }
+      ],
+      "responseType": [
+       "Prepare"
+      ],
+      "senderName": "UK Met Office",
+      "severity": "Severe",
+      "urgency": "Future",
+      "web": "https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings"
+     }
+    ],
+    "msgType": "Alert",
+    "scope": "Public",
+    "sender": "https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings",
+    "sent": "2026-10-24T07:43:07+00:00",
+    "source": "2.49.0.0.826.0.GB",
+    "status": "Actual"
+   },
+   "uuid": "3638dfe3-b84f-44bd-afd8-cef2288ff4d6"
+  },
+  {
+   "alert": {
+    "code": [
+     "MCP:v2.0"
+    ],
+    "identifier": "2.49.0.0.826.0.GB_261022090024_e463c349.v2.0.W",
+    "incidents": "Update",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "South West England",
+        "polygon": [
+         "49.8239,-6.5331 49.8674,-6.5433 49.9332,-6.5139 50.0176,-6.4498 50.1169,-6.3561 50.2273,-6.2375 50.3453,-6.0992 50.4672,-5.946 50.5893,-5.783 50.7082,-5.615 50.8203,-5.447 50.9222,-5.284 51.0103,-5.131 51.0811,-4.9928 51.1314,-4.8745 51.1513,-4.8152 51.1695,-4.7527 51.1856,-4.688 51.1997,-4.6223 51.2116,-4.5564 51.2213,-4.4913 51.2286,-4.4279 51.2335,-4.3674 51.2359,-4.3106 51.2357,-4.2585 51.2328,-4.2122 51.2271,-4.1725 51.2185,-4.1405 51.2069,-4.1171 51.1931,-4.1051 51.1757,-4.1018 51.1552,-4.1062 51.1318,-4.1167 51.106,-4.1323 51.0781,-4.1515 51.0486,-4.1732 51.0178,-4.1959 50.9861,-4.2185 50.9539,-4.2397 50.9216,-4.2581 50.8897,-4.2725 50.8584,-4.2816 50.8281,-4.2841 50.7912,-4.2769 50.7525,-4.2593 50.7123,-4.2335 50.671,-4.2015 50.629,-4.1654 50.5865,-4.1273 50.5439,-4.089 50.5016,-4.0529 50.4599,-4.0207 50.4192,-3.9947 50.3797,-3.9769 50.342,-3.9692 50.3062,-3.9739 50.2728,-3.9928 50.2174,-4.0668 50.1606,-4.1924 50.1037,-4.3607 50.0478,-4.5631 49.9942,-4.7907 49.9442,-5.0349 49.899,-5.2869 49.8599,-5.5379 49.8281,-5.7791 49.805,-6.0019 49.7918,-6.1975 49.7897,-6.357 49.7999,-6.4718 49.8239,-6.5331"
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "description": "Information on update: Warning time brought forward slightly. A spell of very strong northwesterly winds is likely on Friday morning. There is a good chance that gusts of 60-70 mph will develop widely for a time with per",
+      "event": "Amber wind warning",
+      "expires": "2026-10-23T09:00:00+00:00",
+      "headline": "Storm Austen likely to bring some disruption and possible damaging winds on Friday morning. : UPDATED",
+      "instruction": "Driving in these conditions can be dangerous, for yourself and other road users. If you must drive, you can do this more safely by taking the following actions; drive slowly to minimise the impact of wind gusts, be aware",
+      "language": "en-GB",
+      "onset": "2026-10-23T00:00:00+00:00",
+      "parameter": [
+       {
+        "value": "3; Orange; Severe",
+        "valueName": "awareness_level"
+       },
+       {
+        "value": "1; Wind",
+        "valueName": "awareness_type"
+       }
+      ],
+      "responseType": [
+       "Prepare"
+      ],
+      "senderName": "UK Met Office",
+      "severity": "Severe",
+      "urgency": "Future",
+      "web": "https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings"
+     }
+    ],
+    "msgType": "Update",
+    "references": "https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings,2.49.0.0.826.0.GB_261021084158_e463c349.v1.0.W,2026-10-21T08:41:58+00:00",
+    "scope": "Public",
+    "sender": "https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings",
+    "sent": "2026-10-22T09:00:24+00:00",
+    "source": "2.49.0.0.826.0.GB",
+    "status": "Actual"
+   },
+   "uuid": "4bbcece8-1ba8-4b5a-81a3-31988b7375a8"
+  },
+  {
+   "alert": {
+    "code": [
+     "MCP:v2.0"
+    ],
+    "identifier": "2.49.0.1.826.1.20261024163929.129166",
+    "incidents": "Alert",
+    "info": [
+     {
+      "area": [
+       {
+        "areaDesc": "River Barle from Simonsbath to Brushford, including Withypool",
+        "polygon": [
+         "51.03777,-3.55179 51.0371,-3.55043 51.03639,-3.54983 51.03624,-3.54819 51.03576,-3.54723 51.03508,-3.54685 51.03493,-3.54536 51.035,-3.54308 51.03443,-3.54157 51.03408,-3.54061 51.03352,-3.53947 51.03262,-3.53881 51.03214,-3.538 51.03148,-3.53676 51.03064,-3.53622 51.02988,-3.53578 51.02912,-3.53489 51.02697,-3.53425 51.02573,-3.53329 51.02414,-3.53194 51.02222,-3.52954 51.02147,-3.52852 51.0198,-3.52681 51.01878,-3.52542 51.0175,-3.5234 51.017,-3.52016 51.01647,-3.5188 51.01468,-3.51874 51.01353,-3.51982 51.01255,-3.51946 51.01275,-3.52273 51.00958,-3.52483 51.00896,-3.52607 51.00981,-3.52672 51.01095,-3.52603 51.01206,-3.52476 51.01318,-3.5234 51.01445,-3.52615 51.01493,-3.52711 51.0159,-3.52805 51.01666,-3.5285 51.01782,-3.52911 51.01862,-3.53006 51.0196,-3.53088 51.01991,-3.53146 51.02143,-3.53229 51.02195,-3.53331 51.02343,-3.53379 51.02499,-3.53484 51.02668,-3.53625 51.02764,-3.53856 51.02847,-3.5393 51.02946,-3.54026 51.03071,-3.54083 51.03124,-3.54132 51.03243,-3.54328 51.03273,-3.54415 51.03392,-3.54633 51.03453,-3.54763 51.03549,-3.55002 51.03663,-3.55198 51.03774,-3.55293 51.03777,-3.55179",
+         "51.04539,-3.55062 51.04786,-3.55977 51.0503,-3.56799 51.05164,-3.57629 51.05259,-3.58883 51.05555,-3.59371 51.05823,-3.60002 51.06166,-3.60961 51.06664,-3.62013 51.07228,-3.62854 51.07527,-3.62372 51.07909,-3.624 51.08583,-3.63073 51.09214,-3.63231 51.0902,-3.64002 51.09545,-3.64035 51.10021,-3.64395 51.10697,-3.64589 51.10604,-3.65401 51.10588,-3.66308 51.10778,-3.66843 51.11193,-3.67714 51.11153,-3.68885 51.11275,-3.69468 51.11176,-3.7045 51.1131,-3.71127 51.11656,-3.71404 51.11985,-3.72266 51.1245,-3.73077 51.1287,-3.74429 51.1335,-3.74561 51.13736,-3.75462 51.13813,-3.75493 51.13541,-3.74697 51.12951,-3.74423 51.12905,-3.73594 51.12428,-3.72711 51.1201,-3.72181 51.11673,-3.71246 51.11265,-3.70496 51.11398,-3.69737 51.11288,-3.68683 51.1125,-3.67544 51.11041,-3.66717 51.10694,-3.65173 51.10797,-3.64599 51.10204,-3.6415 51.09428,-3.63765 51.09198,-3.63537 51.09044,-3.62952 51.08176,-3.62873 51.07818,-3.61818 51.07428,-3.62069 51.07205,-3.62632 51.06879,-3.62071 51.06406,-3.61198 51.06383,-3.60619 51.05941,-3.60069 51.05378,-3.59399 51.05226,-3.58081 51.05054,-3.56477 51.04646,-3.55743 51.04718,-3.55096 51.04539,-3.55062"
+        ]
+       }
+      ],
+      "category": [
+       "Met"
+      ],
+      "certainty": "Likely",
+      "contact": "0345 988 1188",
+      "description": "High river levels are expected to cause flooding today. \n\nFlooding is expected on Saturday 24 October  \n\nProperties and low lying areas will start to flood from around 7 pm on Saturday. The main areas of concern are Simo",
+      "event": "Flood Warning: River Barle from Simonsbath to Brushford, including Withypool",
+      "expires": "2026-10-26T16:39:29+00:00",
+      "headline": "Flooding is expected: River Barle from Simonsbath to Brushford, including Withypool",
+      "instruction": "Act now \n \nYou should: \n- go to Check for flooding for a map of the area and to monitor up-to-date local flood information – https://check-for-flooding.service.gov.uk/target-area/113FWF2G2A  \n- act on your personal flood",
+      "language": "en-GB",
+      "onset": "2026-10-24T16:39:29+00:00",
+      "parameter": [
+       {
+        "value": "3; orange; Severe",
+        "valueName": "awareness_level"
+       },
+       {
+        "value": "12; Flooding",
+        "valueName": "awareness_type"
+       }
+      ],
+      "responseType": [
+       "Monitor"
+      ],
+      "senderName": "Environment Agency",
+      "severity": "Severe",
+      "urgency": "Immediate",
+      "web": "https://check-for-flooding.service.gov.uk"
+     }
+    ],
+    "msgType": "Alert",
+    "scope": "Public",
+    "sender": "www.gov.uk/environment-agency",
+    "sent": "2026-10-24T16:39:29+00:00",
+    "source": "Flood warning service",
+    "status": "Actual"
+   },
+   "uuid": "ba689c9c-f259-4523-8d20-0bf73ef1f5d2"
+  }
+ ]
+}

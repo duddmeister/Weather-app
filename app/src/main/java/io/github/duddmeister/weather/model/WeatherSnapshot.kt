@@ -24,6 +24,10 @@ data class WeatherSnapshot(
     val alerts: List<WeatherAlert> = emptyList(),
     /** True when an alert source covers this location (so "no alerts" is meaningful). */
     val alertsSupported: Boolean = false,
+    /** Who the alerts come from, for attribution: "National Weather Service" or "MeteoAlarm". */
+    val alertsSource: String? = null,
+    /** Epoch millis of the last successful alert fetch; warnings feeds are checked less often than forecasts. */
+    val alertsFetchedAt: Long? = null,
 )
 
 @Serializable
@@ -145,6 +149,8 @@ data class WeatherAlert(
     val ends: Long? = null,
     val sender: String? = null,
     val areaDesc: String? = null,
+    /** Colour-coded warning level where the issuer uses one (MeteoAlarm): 2 yellow, 3 amber, 4 red. */
+    val level: Int? = null,
 ) {
     val severityRank: Int
         get() = when (severity?.lowercase()) {

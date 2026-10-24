@@ -29,7 +29,7 @@ object Notifications {
         manager.createNotificationChannels(
             listOf(
                 NotificationChannel(CHANNEL_SEVERE, "Severe weather alerts", NotificationManager.IMPORTANCE_HIGH).apply {
-                    description = "Watches, warnings and advisories for your places (US, from the National Weather Service)"
+                    description = "Official weather warnings for your places: the Met Office and other European services, and the US National Weather Service"
                 },
                 NotificationChannel(CHANNEL_PRECIPITATION, "Rain & snow alerts", NotificationManager.IMPORTANCE_DEFAULT).apply {
                     description = "A heads-up shortly before rain or snow starts where you are"

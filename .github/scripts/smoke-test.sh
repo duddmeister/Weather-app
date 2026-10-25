@@ -159,7 +159,15 @@ walk() {
 
   check_emulator "home screen of $package"
   launch "$package" OPEN_SETTINGS
-  if [ -n "$capture" ]; then snap 10-settings 3; swipe_up; snap 11-settings-more; else sleep 3; fi
+  if [ -n "$capture" ]; then
+    snap 10-settings 3
+    for i in 2 3 4; do
+      swipe_up
+      snap "10-settings-$i"
+    done
+  else
+    sleep 3
+  fi
 
   launch "$package" OPEN_PLACES
   if [ -n "$capture" ]; then snap 12-places 3; else sleep 3; fi

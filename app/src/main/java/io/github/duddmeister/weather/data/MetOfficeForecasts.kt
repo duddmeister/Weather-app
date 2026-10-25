@@ -215,7 +215,8 @@ class MetOfficeForecasts(
                 unavailable -> MetOfficeStatus.Unavailable
                 else -> MetOfficeStatus.Ready
             },
-            keyHint = current.apiKey?.takeLast(4),
+            // Keys end in base64 padding, which every key shares.
+            keyHint = current.apiKey?.trimEnd('=')?.takeLast(4),
             callsToday = current.callsOn(today),
             lastSuccessAt = current.lastSuccessAt,
         )

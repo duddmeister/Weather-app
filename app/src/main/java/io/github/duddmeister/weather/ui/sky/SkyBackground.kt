@@ -44,8 +44,8 @@ import kotlin.random.Random
  * moon phase, drifting clouds, rain, snow, fog and lightning. Everything is drawn in one layer and
  * only the draw phase runs per frame (no recomposition). Animation pauses when the app isn't visible.
  *
- * Behind other screens ([calm]), rain, snow and lightning fade out and the sky then holds still, so
- * nothing falls across settings or lists.
+ * Behind other screens ([calm]), rain, snow, lightning, stars, the sun and the moon fade out and the
+ * sky then holds still, leaving its colours and soft clouds behind settings and lists.
  */
 @Composable
 fun SkyBackground(scene: SkyScene, animate: Boolean, calm: Boolean = false, modifier: Modifier = Modifier) {
@@ -54,15 +54,16 @@ fun SkyBackground(scene: SkyScene, animate: Boolean, calm: Boolean = false, modi
     val top by animateColorAsState(scene.palette.top, colorSpec, label = "skyTop")
     val middle by animateColorAsState(scene.palette.middle, colorSpec, label = "skyMiddle")
     val bottom by animateColorAsState(scene.palette.bottom, colorSpec, label = "skyBottom")
-    val stars by animateFloatAsState(scene.stars, floatSpec, label = "stars")
-    val sun by animateFloatAsState(scene.sun, floatSpec, label = "sun")
-    val moon by animateFloatAsState(scene.moon, floatSpec, label = "moon")
+    // Whatever would show through cards clears quickly when another screen opens, and returns
+    // gently after it closes.
+    val calmSpec = if (calm) tween<Float>(durationMillis = 400) else floatSpec
+    val stars by animateFloatAsState(if (calm) 0f else scene.stars, calmSpec, label = "stars")
+    val sun by animateFloatAsState(if (calm) 0f else scene.sun, calmSpec, label = "sun")
+    val moon by animateFloatAsState(if (calm) 0f else scene.moon, calmSpec, label = "moon")
     val clouds by animateFloatAsState(scene.clouds, floatSpec, label = "clouds")
     val darkness by animateFloatAsState(if (scene.darkClouds) 1f else 0f, floatSpec, label = "cloudDarkness")
-    // Precipitation clears quickly when another screen opens and returns gently after it closes.
-    val precipitationSpec = if (calm) tween<Float>(durationMillis = 400) else floatSpec
-    val rainState = animateFloatAsState(if (calm) 0f else scene.rain, precipitationSpec, label = "rain")
-    val snowState = animateFloatAsState(if (calm) 0f else scene.snow, precipitationSpec, label = "snow")
+    val rainState = animateFloatAsState(if (calm) 0f else scene.rain, calmSpec, label = "rain")
+    val snowState = animateFloatAsState(if (calm) 0f else scene.snow, calmSpec, label = "snow")
     val rain by rainState
     val snow by snowState
     val fog by animateFloatAsState(scene.fog, floatSpec, label = "fog")

@@ -1,7 +1,9 @@
 package io.github.duddmeister.weather
 
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -40,6 +42,33 @@ class WidgetPreviewActivity : ComponentActivity() {
         setContentView(ScrollView(this).apply {
             setBackgroundColor(0xFF2B2F38.toInt())
             addView(column)
+        })
+
+        // The launcher icon as Android draws it, in this device's icon shape, and its foreground on the
+        // splash screen's colour.
+        column.addView(TextView(this).apply {
+            text = "App icon · launcher and splash screen"
+            setTextColor(0xFFFFFFFF.toInt())
+            setPadding(0, 0, 0, padding / 2)
+        })
+        val iconSize = (96 * density).toInt()
+        column.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(
+                ImageView(this@WidgetPreviewActivity).apply { setImageDrawable(packageManager.getApplicationIcon(applicationInfo)) },
+                LinearLayout.LayoutParams(iconSize, iconSize).apply { marginEnd = padding },
+            )
+            addView(
+                ImageView(this@WidgetPreviewActivity).apply {
+                    setImageResource(R.drawable.ic_launcher_foreground)
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.OVAL
+                        setColor(0xFF0F2A5C.toInt())
+                    }
+                    clipToOutline = true
+                },
+                LinearLayout.LayoutParams(iconSize, iconSize),
+            )
         })
 
         // Each layout under a different sky, so one pass shows every effect at a real size, in each of

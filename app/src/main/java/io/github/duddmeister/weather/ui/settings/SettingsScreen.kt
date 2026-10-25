@@ -59,7 +59,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
@@ -119,7 +124,8 @@ fun SettingsScreen(
             Text("Settings", style = MaterialTheme.typography.headlineSmall, color = Color.White)
         }
         LazyColumn(
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp),
+            modifier = Modifier.fadeTopEdge(16.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item(key = "units") {
@@ -266,6 +272,14 @@ fun SettingsScreen(
 }
 
 private const val METOFFICE_DATAHUB_URL = "https://datahub.metoffice.gov.uk/"
+
+/** Content fades out as it scrolls up under the title, instead of being cut off. */
+private fun Modifier.fadeTopEdge(height: Dp) = graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        val fade = (height.toPx() / size.height).coerceIn(0f, 1f)
+        drawRect(Brush.verticalGradient(0f to Color.Transparent, fade to Color.Black), blendMode = BlendMode.DstIn)
+    }
 
 private val RowPadding = 16.dp
 private val Accent = Color(0xFF4F8EF7)

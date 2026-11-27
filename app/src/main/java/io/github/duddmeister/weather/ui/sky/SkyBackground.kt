@@ -205,7 +205,9 @@ fun SkyBackground(
                     if (look.lightning > 0.5f) drawLightningBolt(t, look.lightning)
                     // Last, what's on the glass of the screen itself.
                     with(backdrop) {
-                        recordWater(plainDensity, wet = look.rain > 0.01f) { drawGlassRain(drops, t, look.rain, look.windTilt) }
+                        recordWater(plainDensity, wet = look.rain > 0.01f) {
+                            drawGlassRain(drops, t, look.rain, look.windTilt, splashes = animate)
+                        }
                     }
                 }
             },

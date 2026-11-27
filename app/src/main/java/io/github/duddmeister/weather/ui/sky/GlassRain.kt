@@ -136,8 +136,10 @@ internal class DropArt(density: Density) {
  *
  * @param amount how hard it's raining, 0..1
  * @param tilt how far the wind pushes a running drop sideways per unit it falls
+ * @param splashes whether to draw the splash of a drop that's just landing. A sky that's standing
+ *   still leaves them out: a splash caught mid-air for good is just a ring around a drop.
  */
-internal fun DrawScope.drawGlassRain(art: DropArt, t: Float, amount: Float, tilt: Float) {
+internal fun DrawScope.drawGlassRain(art: DropArt, t: Float, amount: Float, tilt: Float, splashes: Boolean = true) {
     val fade = (amount / 0.2f).coerceIn(0f, 1f)
     if (fade <= 0f) return
     val dp = art.dp
@@ -158,7 +160,7 @@ internal fun DrawScope.drawGlassRain(art: DropArt, t: Float, amount: Float, tilt
         // Mostly small, now and then a fat one.
         val big = GlassRainMotion.chance(i, cycle, 4)
         val radius = (1.8f + 4.4f * big * big * big) * dp
-        if (radius > 2.6f * dp) drawSplash(art, x, y, radius, age, seed = i * 31 + cycle, alpha = shown)
+        if (splashes && radius > 2.6f * dp) drawSplash(art, x, y, radius, age, seed = i * 31 + cycle, alpha = shown)
         drawDrop(art, x, y, radius * presence.coerceAtMost(1.2f), tail = 0f, alpha = presence.coerceAtMost(1f) * shown)
     }
 
@@ -230,7 +232,7 @@ internal fun DrawScope.drawGlassRain(art: DropArt, t: Float, amount: Float, tilt
                 val side = (GlassRainMotion.chance(i, cycle, 30 + b) - 0.5f) * radius * 0.5f
                 drawDrop(art, pathX(depth) + side, startY + depth, radius * (0.22f + 0.2f * GlassRainMotion.chance(i, cycle, 40 + b)), tail = 0f, alpha = left.coerceAtMost(1f) * shown)
             }
-        } else if (running < 0f) {
+        } else if (splashes && running < 0f) {
             drawSplash(art, startX, startY, radius, age, seed = i * 31 + cycle, alpha = shown)
         }
         if (y - radius * 3f > size.height) continue

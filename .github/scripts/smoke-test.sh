@@ -395,18 +395,20 @@ elif ! grep -q "Nimbus/WeatherRepository: Updated" "$OUT/logcat-widgets.txt"; th
 fi
 echo "::endgroup::"
 
-# The skies with their weather moving: the gallery again with animations on, two frames of each sky
-# a moment apart. The rain must have left water on the glass.
+# The skies with their weather moving: the gallery again with animations on. Whatever falls is
+# captured twice, a moment apart, and the rain must have left water on the glass.
 echo "::group::Skies in motion"
 adb_ shell settings put global animator_duration_scale 1
 adb_ logcat -c
 adb_ shell am force-stop "$DEBUG_PKG" # so that the app sees animations are back on
-for sky in rain storm snow night; do
+for sky in rain storm snow; do
   open_sky "$DEBUG_PKG" "$sky"
   snap "20-sky-$sky" 5
   snap "20-sky-$sky-b" 0.4
   compare_frames "20-sky-$sky" "20-sky-$sky-b" "$sky sky"
 done
+open_sky "$DEBUG_PKG" night
+snap 20-sky-night 4
 adb_ shell settings put global animator_duration_scale 0
 check_emulator "skies in motion"
 adb_ logcat -d > "$OUT/logcat-skies.txt"

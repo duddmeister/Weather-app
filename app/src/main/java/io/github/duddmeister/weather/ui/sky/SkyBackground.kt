@@ -189,20 +189,22 @@ fun SkyBackground(
                             }
                         }
                     }
-                    if (look.stars > 0.01f) drawStars(field, t, look.stars, rise * 0.15f)
+                    // What only lasts a moment (a shooting star, lightning, a splash) is left out of a sky
+                    // that's standing still: caught for good, it would just be a mark on the picture.
+                    if (look.stars > 0.01f) drawStars(field, t, look.stars, rise * 0.15f, shooting = animate)
                     if (look.sun > 0.01f) drawSun(art, sunCenter, look.sun, look.sunWarmth, t)
                     if (look.moon > 0.01f) drawMoon(art, moonCenter, look.moon)
                     with(backdrop) {
                         recordVeil(plainDensity) {
                             if (look.clouds > 0.01f) drawClouds(field, art, t, look.clouds, look.cloudDarkness, rise * 0.1f)
                             if (look.fog > 0.01f) drawFog(field, art, t, look.fog)
-                            if (look.lightning > 0.5f) drawLightningFlash(t, look.lightning)
+                            if (animate && look.lightning > 0.5f) drawLightningFlash(t, look.lightning)
                             if (look.dim > 0.001f) drawRect(Color.Black, alpha = look.dim)
                         }
                     }
                     if (look.rain > 0.01f) drawRain(field, t, look.rain, look.windTilt)
                     if (look.snow > 0.01f) drawSnow(field, art, t, look.snow)
-                    if (look.lightning > 0.5f) drawLightningBolt(t, look.lightning)
+                    if (animate && look.lightning > 0.5f) drawLightningBolt(t, look.lightning)
                     // Last, what's on the glass of the screen itself.
                     with(backdrop) {
                         recordWater(plainDensity, wet = look.rain > 0.01f) {
@@ -398,7 +400,7 @@ private fun DrawScope.drawMoon(art: SkyArt, center: Offset, amount: Float) {
     }
 }
 
-private fun DrawScope.drawStars(field: ParticleField, t: Float, amount: Float, rise: Float) {
+private fun DrawScope.drawStars(field: ParticleField, t: Float, amount: Float, rise: Float, shooting: Boolean) {
     val count = 120
     for (i in 0 until count) {
         val x = field.a[i] * size.width
@@ -419,7 +421,7 @@ private fun DrawScope.drawStars(field: ParticleField, t: Float, amount: Float, r
     val period = 11f
     val cycle = floor(t / period)
     val local = t - cycle * period
-    if (local < 0.9f) {
+    if (shooting && local < 0.9f) {
         val seed = Random(cycle.toInt() * 31 + 7)
         val start = Offset(size.width * (0.1f + 0.6f * seed.nextFloat()), size.height * (0.04f + 0.22f * seed.nextFloat()))
         val direction = Offset(0.9f, 0.42f)

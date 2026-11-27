@@ -1,7 +1,5 @@
 package io.github.duddmeister.weather.ui.home
 
-import android.os.Build
-import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -41,11 +39,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import io.github.duddmeister.weather.ui.components.PulsingDots
+import io.github.duddmeister.weather.ui.components.rememberHaptics
 import io.github.duddmeister.weather.ui.theme.SkyText
 import kotlinx.coroutines.delay
 import kotlin.math.exp
@@ -105,17 +103,9 @@ fun ElasticRefreshBox(
     }
 
     val armed by remember { derivedStateOf { state.distanceFraction >= 1f } }
-    val view = LocalView.current
+    val haptics = rememberHaptics()
     LaunchedEffect(armed) {
-        if (armed && !pulled && !done) {
-            view.performHapticFeedback(
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    HapticFeedbackConstants.GESTURE_THRESHOLD_ACTIVATE
-                } else {
-                    HapticFeedbackConstants.CONTEXT_CLICK
-                },
-            )
-        }
+        if (armed && !pulled && !done) haptics.threshold()
     }
 
     val density = LocalDensity.current
@@ -214,7 +204,7 @@ private fun RefreshHeader(phase: RefreshPhase, modifier: Modifier = Modifier) {
                         PulsingDots(Color.White)
                     }
                     2 -> {
-                        Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Color(0xFF8BE0A4), modifier = Modifier.size(18.dp))
+                        Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = SkyText.Positive, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
                         Text("Updated just now", style = MaterialTheme.typography.labelLarge, color = Color.White)
                     }

@@ -1,11 +1,7 @@
 package io.github.duddmeister.weather.ui.settings
 
 import android.content.ClipboardManager
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,9 +21,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -48,7 +44,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -66,12 +61,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -90,12 +85,17 @@ import io.github.duddmeister.weather.model.TimeFormat
 import io.github.duddmeister.weather.model.WindUnit
 import io.github.duddmeister.weather.ui.components.CardLabel
 import io.github.duddmeister.weather.ui.components.GlassCard
+import io.github.duddmeister.weather.ui.components.GlassIconButton
+import io.github.duddmeister.weather.ui.components.PillButton
 import io.github.duddmeister.weather.ui.components.PulsingDots
+import io.github.duddmeister.weather.ui.components.SegmentedControl
+import io.github.duddmeister.weather.ui.components.StatusDot
+import io.github.duddmeister.weather.ui.components.nimbusSwitchColors
+import io.github.duddmeister.weather.ui.components.rememberHaptics
 import io.github.duddmeister.weather.ui.home.rememberUse24h
 import io.github.duddmeister.weather.ui.theme.SkyText
 import io.github.duddmeister.weather.update.UpdateState
 import java.time.ZoneId
-import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen(
@@ -117,11 +117,12 @@ fun SettingsScreen(
 ) {
     val uri = LocalUriHandler.current
     val use24h = rememberUse24h(settings)
-    Column(Modifier.fillMaxSize().statusBarsPadding()) {
-        Row(Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = Color.White) }
-            Spacer(Modifier.width(4.dp))
-            Text("Settings", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+    // A comfortable column on wide screens.
+    Column(Modifier.fillMaxSize().wrapContentWidth().widthIn(max = 640.dp).statusBarsPadding()) {
+        Row(Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            GlassIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Back", onBack)
+            Spacer(Modifier.width(8.dp))
+            Text("Settings", style = MaterialTheme.typography.headlineSmall, color = Color.White, modifier = Modifier.semantics { heading() })
         }
         LazyColumn(
             modifier = Modifier.fadeTopEdge(16.dp),
@@ -174,7 +175,7 @@ fun SettingsScreen(
                         },
                         trailing = {
                             if (unrestrictedBattery) {
-                                Icon(Icons.Rounded.CheckCircle, contentDescription = "On", tint = Positive, modifier = Modifier.size(22.dp))
+                                Icon(Icons.Rounded.CheckCircle, contentDescription = "On", tint = SkyText.Positive, modifier = Modifier.size(22.dp))
                             } else {
                                 PillButton("Allow", onAllowUnrestrictedBattery)
                             }
@@ -265,6 +266,8 @@ fun SettingsScreen(
                     LinkRow("Warnings: MeteoAlarm (CC BY 4.0)") { uri.openUri("https://meteoalarm.org/") }
                     RowDivider()
                     LinkRow("Alerts: National Weather Service") { uri.openUri("https://www.weather.gov/") }
+                    RowDivider()
+                    LinkRow("Typeface: Outfit (Open Font License)") { uri.openUri("https://fonts.google.com/specimen/Outfit") }
                 }
             }
         }
@@ -282,8 +285,6 @@ private fun Modifier.fadeTopEdge(height: Dp) = graphicsLayer { compositingStrate
     }
 
 private val RowPadding = 16.dp
-private val Accent = Color(0xFF4F8EF7)
-private val Positive = Color(0xFF7FDDA0)
 
 private val RowTitle: TextStyle
     @Composable get() = MaterialTheme.typography.bodyLarge.copy(letterSpacing = 0.1.sp)
@@ -371,9 +372,9 @@ private fun metOfficeStatus(state: MetOfficeState, use24h: Boolean, nowMillis: L
 }
 
 private fun metOfficeStatusColor(state: MetOfficeState): Color = when (state.status) {
-    MetOfficeStatus.Ready -> if (state.lastSuccessAt != null) Positive else SkyText.Tertiary
+    MetOfficeStatus.Ready -> if (state.lastSuccessAt != null) SkyText.Positive else SkyText.Tertiary
     MetOfficeStatus.Checking -> Color(0xFF9CCBFF)
-    MetOfficeStatus.Rejected -> Color(0xFFFF8A80)
+    MetOfficeStatus.Rejected -> SkyText.Negative
     MetOfficeStatus.LimitReached, MetOfficeStatus.Unavailable -> SkyText.Warning
     MetOfficeStatus.NoKey -> SkyText.Tertiary
 }
@@ -481,29 +482,20 @@ private fun <T> ChoiceRow(
     subtitle: String? = null,
     onSelect: (T) -> Unit,
 ) {
-    SettingRow(title = title, subtitle = subtitle, trailing = { PillChoice(options, selected, label, onSelect) })
+    SettingRow(title = title, subtitle = subtitle, trailing = { SegmentedControl(options, selected, label, onSelect) })
 }
 
 @Composable
 private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    val haptics = rememberHaptics()
     SettingRow(
         title = title,
         subtitle = subtitle,
-        modifier = Modifier.toggleable(value = checked, role = Role.Switch, onValueChange = onChange),
-        trailing = {
-            Switch(
-                checked = checked,
-                onCheckedChange = null,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = Accent,
-                    checkedBorderColor = Color.Transparent,
-                    uncheckedThumbColor = Color.White.copy(alpha = 0.85f),
-                    uncheckedTrackColor = Color.White.copy(alpha = 0.14f),
-                    uncheckedBorderColor = Color.Transparent,
-                ),
-            )
+        modifier = Modifier.toggleable(value = checked, role = Role.Switch) {
+            haptics.toggle(it)
+            onChange(it)
         },
+        trailing = { Switch(checked = checked, onCheckedChange = null, colors = nimbusSwitchColors()) },
     )
 }
 
@@ -517,28 +509,6 @@ private fun LinkRow(title: String, onClick: () -> Unit) {
     )
 }
 
-/** A rounded button: filled for the main action, outlined for the other. */
-@Composable
-private fun PillButton(text: String, onClick: () -> Unit, filled: Boolean = true) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelLarge,
-        color = Color.White,
-        maxLines = 1,
-        modifier = Modifier
-            .clip(CircleShape)
-            .then(
-                if (filled) {
-                    Modifier.background(Color.White.copy(alpha = 0.18f))
-                } else {
-                    Modifier.border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape)
-                },
-            )
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-    )
-}
-
 @Composable
 private fun Step(number: Int, text: String) {
     Row(verticalAlignment = Alignment.Top) {
@@ -547,63 +517,5 @@ private fun Step(number: Int, text: String) {
         }
         Spacer(Modifier.width(10.dp))
         Text(text, style = RowSubtitle, color = SkyText.Secondary, modifier = Modifier.padding(top = 1.dp))
-    }
-}
-
-@Composable
-private fun StatusDot(color: Color) {
-    Box(Modifier.size(10.dp).clip(CircleShape).background(color))
-}
-
-/**
- * A compact segmented control: the options sit on a rounded track and a highlight slides to the
- * chosen one. Options share the widest one's width, shrinking if the row is too narrow.
- */
-@Composable
-private fun <T> PillChoice(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
-    val selectedIndex = options.indexOf(selected).coerceAtLeast(0)
-    val position by animateFloatAsState(
-        targetValue = selectedIndex.toFloat(),
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
-        label = "choice",
-    )
-    Layout(
-        content = {
-            Box(Modifier.clip(CircleShape).background(Color.White.copy(alpha = 0.24f)))
-            options.forEachIndexed { index, option ->
-                val isSelected = index == selectedIndex
-                Box(
-                    Modifier
-                        .clip(CircleShape)
-                        .selectable(selected = isSelected, role = Role.RadioButton) { onSelect(option) }
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        label(option),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = if (isSelected) Color.White else SkyText.Secondary,
-                        maxLines = 1,
-                    )
-                }
-            }
-        },
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.08f))
-            .padding(3.dp)
-            .selectableGroup(),
-    ) { measurables, constraints ->
-        val highlight = measurables.first()
-        val segments = measurables.drop(1)
-        val widest = segments.maxOf { it.maxIntrinsicWidth(Constraints.Infinity) }
-        val width = if (constraints.hasBoundedWidth) minOf(widest, constraints.maxWidth / segments.size) else widest
-        val height = segments.maxOf { it.minIntrinsicHeight(width) }
-        val placeables = segments.map { it.measure(Constraints.fixed(width, height)) }
-        val pill = highlight.measure(Constraints.fixed(width, height))
-        layout(width * segments.size, height) {
-            pill.placeRelative((position * width).roundToInt(), 0)
-            placeables.forEachIndexed { index, placeable -> placeable.placeRelative(index * width, 0) }
-        }
     }
 }

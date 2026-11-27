@@ -89,6 +89,21 @@ pull_to_refresh() {
   snap 04-pull-done 1
 }
 
+# Taps where an hour of the hourly forecast sits when it's the first card (it opens that hour's
+# details; on days with a warning or rain card first, the tap just lands there instead).
+tap_hour() {
+  adb_ shell input tap 443 1575
+}
+
+# With the page scrolled to its end, taps a tile in the second-last row of details, which opens a
+# sheet charting its next 24 hours, then closes the sheet again.
+open_detail() {
+  adb_ shell input tap 809 1076
+  if [ -n "${1:-}" ]; then snap "$1" 2; else sleep 2; fi
+  adb_ shell input keyevent KEYCODE_BACK
+  sleep 1
+}
+
 # wait_for_forecast <package>: waits until that app logs its first successful fetch.
 wait_for_forecast() {
   local pid
@@ -148,13 +163,18 @@ walk() {
   if [ -n "$capture" ]; then
     snap 01-home 4
     pull_to_refresh
+    tap_hour
+    snap 04-hour-details 1
     for i in 5 6 7 8 9; do
       swipe_up
       snap "0$i-scroll"
     done
+    open_detail 09-detail-sheet
   else
     sleep 4
-    for _ in 1 2 3; do swipe_up; sleep 1; done
+    tap_hour
+    for _ in 1 2 3 4 5; do swipe_up; sleep 1; done
+    open_detail
   fi
 
   check_emulator "home screen of $package"

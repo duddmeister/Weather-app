@@ -3,6 +3,8 @@
 A fast, modern Android weather app with live home screen widgets, rain alerts and one-tap
 in-app updates.
 
+![Nimbus on a sunny day, in rain at night with drops on the screen, with an hour's details open, and the list of places](docs/screenshots.webp)
+
 ## Highlights
 
 - **Always current.** Shows *when* the data was fetched ("Updated 2 min ago"). It refreshes

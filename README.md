@@ -9,23 +9,27 @@ in-app updates.
   whenever you open the app, every 5 minutes while it stays open, every 15 minutes in the background
   (adjustable), and whenever you pull down. Between fetches the temperature follows the forecast
   timeline, so an hour-old fetch shows the temperature for *now*, not for an hour ago.
-- **Home screen widgets with a refresh button.** A compact "current weather" widget and a forecast
-  widget (current + hourly + daily). Both resize, show the time they were updated (or "Offline"), and
-  have a ↻ button that fetches fresh data on the spot. Each widget can follow a different place.
-- **Animated sky.** The background changes with conditions and time of day, including dawn and dusk.
-  It draws rain angled by the real wind, snow, stars, a moon in its actual phase, drifting clouds,
-  fog and lightning.
+- **A living sky.** The background is the weather: its colours follow conditions and time of day,
+  with a sun whose rays turn slowly, a moon in its actual phase, stars, drifting clouds, fog,
+  lightning, snow, and rain angled by the real wind. Swipe to another place and the sky blends into
+  that place's weather under your finger. Cards are frosted glass: clouds and glows carry on behind
+  them, rain and snow don't.
+- **Home screen widgets with a refresh button.** Current weather, a forecast (current + hourly +
+  daily), and two clocks with the weather. They resize, show the time they were updated (or
+  "Offline"), animate their own little skies, and have a ↻ button that fetches fresh data on the
+  spot. Each widget can follow a different place.
 - **Rain in the next two hours.** 15-minute precipitation data shows "Light rain starting in about
   20 min, lasting about 45 min", with an intensity chart and an optional notification before it starts.
-- **Plain-English overview.** For example: "Partly cloudy today. Rain likely from 3 PM to 6 PM. High
-  of 18°, 4° cooler than yesterday."
-- **Rich detail.** A 48-hour chart (temperature, rain chance, wind), a 14-day forecast with
-  temperature range bars, UV with "use sun protection until…", sunrise/sunset arc, wind compass,
-  precipitation totals, feels-like explanation, humidity & dew point, visibility, pressure trend,
-  moon phase, cloud cover, air quality (US or European AQI) and pollen.
-- **Severe weather alerts** (US, from the National Weather Service), with notifications.
-- **Multiple places.** Your location plus any cities you add; swipe between them. Long-press the
-  app icon for quick **Places** and **Settings** shortcuts.
+- **Detail on tap.** A 48-hour chart that morphs between temperature, chance of rain and wind (tap
+  any hour for everything about it), a two-week forecast with temperature range bars (tap a day for
+  its hour-by-hour curve), and tiles for UV, sunrise and sunset, wind, rainfall, feels-like,
+  humidity, visibility, pressure, moon phase and cloud cover (most open into a chart of the next
+  24 hours), plus air quality (US or European AQI) and pollen.
+- **Severe weather warnings**, with notifications: the US National Weather Service, and the Met
+  Office and other European services through MeteoAlarm.
+- **Met Office forecasts** for the UK and Ireland, if you add your own free Weather DataHub key.
+- **Multiple places.** Your location plus any cities you add, each shown under its own sky; swipe
+  between them. Long-press the app icon for quick **Places** and **Settings** shortcuts.
 - **Your units.** °C/°F, km/h, mph, m/s, knots, mm/in, hPa/inHg/mmHg, km/mi and 12/24-hour time.
   Defaults follow your region.
 - **In-app updates.** Nimbus checks this repository's GitHub Releases. When a new build is published
@@ -72,6 +76,13 @@ LIVE_API_TEST=1 ./gradlew testDebugUnitTest   # also check the real weather APIs
 
 - Forecasts, air quality and place search: [Open-Meteo](https://open-meteo.com/) (CC BY 4.0), with
   air quality from Copernicus CAMS.
-- Severe weather alerts: [National Weather Service](https://www.weather.gov/) (US only).
+- UK and Ireland forecasts, with your own key: [Met Office Weather DataHub](https://datahub.metoffice.gov.uk/).
+- Severe weather: the [National Weather Service](https://www.weather.gov/) (US) and
+  [MeteoAlarm](https://meteoalarm.org/) (UK and Europe, CC BY 4.0).
 - Reverse geocoding fallback (when the phone's own geocoder isn't available):
   [BigDataCloud](https://www.bigdatacloud.com/).
+
+## Credits
+
+- Typeface: [Outfit](https://fonts.google.com/specimen/Outfit), under the SIL Open Font License
+  (the licence ships in the app, in `assets/licenses`).

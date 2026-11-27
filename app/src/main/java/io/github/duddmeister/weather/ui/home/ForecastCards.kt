@@ -167,8 +167,12 @@ fun HourlyCard(snapshot: WeatherSnapshot, now: NowConditions, nowMillis: Long, s
     val lastSelection = remember { intArrayOf(0) }
     if (selectedIndex >= 0) lastSelection[0] = selectedIndex
     val lastSelected = lastSelection[0]
-    val highlightAt by animateFloatAsState(lastSelected.toFloat(), Motion.snappy(), label = "hour")
     val highlight by animateFloatAsState(if (selectedIndex >= 0) 1f else 0f, tween(Motion.FADE_MILLIS), label = "hourHighlight")
+    // From one hour to another the highlight slides; from nothing it simply appears on the hour tapped.
+    val highlightAt = remember { Animatable(lastSelected.toFloat()) }
+    LaunchedEffect(lastSelected) {
+        if (highlight <= 0.01f) highlightAt.snapTo(lastSelected.toFloat()) else highlightAt.animateTo(lastSelected.toFloat(), Motion.snappy())
+    }
 
     GlassCard(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = 14.dp)) {
         CardLabel(Icons.Rounded.Schedule, "Hourly", Modifier.padding(horizontal = 16.dp)) {
@@ -205,7 +209,7 @@ fun HourlyCard(snapshot: WeatherSnapshot, now: NowConditions, nowMillis: Long, s
                             if (highlight > 0f) {
                                 drawRoundRect(
                                     Color.White,
-                                    topLeft = Offset(column * highlightAt + 3.dp.toPx(), -2.dp.toPx()),
+                                    topLeft = Offset(column * highlightAt.value + 3.dp.toPx(), -2.dp.toPx()),
                                     size = Size(column - 6.dp.toPx(), size.height + 4.dp.toPx()),
                                     cornerRadius = CornerRadius(18.dp.toPx()),
                                     alpha = 0.13f * highlight,

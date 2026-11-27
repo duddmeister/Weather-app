@@ -206,11 +206,12 @@ private fun MetricChart(details: MetricDetails, text: TimeText, modifier: Modifi
     val density = LocalDensity.current
     val known = (details.main.values + details.other?.values.orEmpty()).filterNotNull()
     val low = details.floor ?: known.min()
-    val high = (details.ceiling ?: known.max()).coerceAtLeast(low + 1e-6)
-    // A little air above and below, unless the scale has fixed ends.
-    val pad = (high - low) * 0.12
+    val high = (details.ceiling ?: known.max()).coerceAtLeast(low)
+    // A little air above and below, unless the scale has fixed ends. A value that never changes
+    // still gets a band to sit in, so its line runs through the middle rather than along an edge.
+    val pad = maxOf((high - low) * 0.12, 0.5)
     val bottomValue = if (details.floor != null) low else low - pad
-    val topValue = if (details.ceiling != null) high else high + pad
+    val topValue = if (details.ceiling != null) high.coerceAtLeast(bottomValue + pad) else high + pad
     val scale = remember(details, axisStyle, density) {
         listOf(topValue, (topValue + bottomValue) / 2, bottomValue).map { it to measurer.measure(details.format(it), axisStyle) }
     }

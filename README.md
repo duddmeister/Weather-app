@@ -19,6 +19,9 @@ in-app updates.
 - **Rain on the glass.** When it rains, drops land on the screen with a splash, sit as beads and
   dry away; heavier ones let go and run down in fits and starts, leaving a wet track. They cross
   the cards too, underneath the text, and there are more of them the harder it rains.
+- **Every sky, whenever you like.** **Settings → Skies** is a gallery of all ten: sun, cloud,
+  drizzle, rain, thunderstorm, snow, fog, golden hour and a starry night. Swipe from one to the next
+  and they blend, so you can watch rain run down the glass on a dry day.
 - **Home screen widgets with a refresh button.** Current weather, a forecast (current + hourly +
   daily), and two clocks with the weather. They resize, show the time they were updated (or
   "Offline"), animate their own little skies, and have a ↻ button that fetches fresh data on the
@@ -61,8 +64,8 @@ Every push to `main` runs [`.github/workflows/release.yml`](.github/workflows/re
 builds a signed APK, runs the unit tests and publishes a GitHub Release named `v1.0.<build>` with
 the APK attached and the commit messages as release notes. Pull requests run
 [`ci.yml`](.github/workflows/ci.yml). It builds, tests and lints, then runs the app on an emulator:
-it opens every screen, uploads screenshots, and updates the installed build to the latest release
-through the app's own updater.
+it opens every screen, uploads screenshots, checks that the rain sky leaves drops on the glass, and
+updates the installed build to the latest release through the app's own updater.
 
 Releases are signed with the key in [`signing/`](signing/README.md). To use a private key instead,
 see that page.

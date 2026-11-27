@@ -79,12 +79,13 @@ class MainActivity : ComponentActivity() {
         val (screen, shortcutId) = when (intent.action) {
             ACTION_OPEN_PLACES -> Screen.Places to SHORTCUT_PLACES
             ACTION_OPEN_SETTINGS -> Screen.Settings to SHORTCUT_SETTINGS
+            ACTION_OPEN_SKIES -> Screen.Skies to null
             else -> null to null
         }
         // Lets the launcher rank the shortcuts by how often they're used.
         if (shortcutId != null) ShortcutManagerCompat.reportShortcutUsed(this, shortcutId)
         if (locationId != null || showUpdate || installUpdate || screen != null) {
-            launchRequests.value = LaunchRequest(locationId, showUpdate, installUpdate, screen)
+            launchRequests.value = LaunchRequest(locationId, showUpdate, installUpdate, screen, sky = intent.getStringExtra(EXTRA_SKY))
         }
     }
 
@@ -92,6 +93,10 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_LOCATION_ID = "io.github.duddmeister.weather.extra.LOCATION_ID"
         const val ACTION_OPEN_PLACES = "io.github.duddmeister.weather.action.OPEN_PLACES"
         const val ACTION_OPEN_SETTINGS = "io.github.duddmeister.weather.action.OPEN_SETTINGS"
+
+        /** Opens the gallery of skies, on the sky named by [EXTRA_SKY] if there is one (the smoke test's way in). */
+        const val ACTION_OPEN_SKIES = "io.github.duddmeister.weather.action.OPEN_SKIES"
+        const val EXTRA_SKY = "io.github.duddmeister.weather.extra.SKY"
         const val SHORTCUT_PLACES = "places"
         const val SHORTCUT_SETTINGS = "settings"
     }

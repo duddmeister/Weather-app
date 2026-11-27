@@ -8,6 +8,7 @@ import io.github.duddmeister.weather.domain.NowConditions
 import io.github.duddmeister.weather.domain.dayFor
 import io.github.duddmeister.weather.domain.localDate
 import io.github.duddmeister.weather.model.SkyCategory
+import io.github.duddmeister.weather.model.WeatherCondition
 import io.github.duddmeister.weather.model.WeatherSnapshot
 import io.github.duddmeister.weather.ui.SkyKind
 import io.github.duddmeister.weather.ui.WeatherVisuals
@@ -80,8 +81,6 @@ object SkyScenes {
     fun forConditions(snapshot: WeatherSnapshot?, now: NowConditions?, nowMillis: Long): SkyScene {
         if (snapshot == null || now == null) return Default
         val kind = WeatherVisuals.skyKind(snapshot, now, nowMillis)
-        val condition = now.condition
-        val intensity = condition.intensity.coerceAtLeast(1) / 3f
         val windSpeed = now.windSpeed ?: 10.0
         val direction = now.windDirection
         val tilt = if (direction == null) {
@@ -90,14 +89,32 @@ object SkyScenes {
             val strength = (windSpeed / 80.0).coerceIn(0.05, 0.45)
             (-sin(Math.toRadians(direction)) * strength).toFloat()
         }
-        val night = !now.isDay
-        val scene = SkyScene(
+        return forCondition(
+            condition = now.condition,
             kind = kind,
-            palette = palette(kind),
+            night = !now.isDay,
             windTilt = tilt,
             moonPhase = Astronomy.moon(nowMillis).phase.toFloat(),
             sunLowness = sunLowness(snapshot, kind, nowMillis),
         )
+    }
+
+    /**
+     * The sky for a kind of weather, wherever that came from: the forecast, or the gallery of skies.
+     *
+     * @param windTilt how far rain leans per unit it falls (negative leans left)
+     * @param sunLowness for dawn and dusk, how near the horizon the sun is, 0..1
+     */
+    fun forCondition(
+        condition: WeatherCondition,
+        kind: SkyKind,
+        night: Boolean,
+        windTilt: Float,
+        moonPhase: Float,
+        sunLowness: Float = 0f,
+    ): SkyScene {
+        val intensity = condition.intensity.coerceAtLeast(1) / 3f
+        val scene = SkyScene(kind = kind, palette = palette(kind), windTilt = windTilt, moonPhase = moonPhase, sunLowness = sunLowness)
         return when (condition.category) {
             SkyCategory.Clear -> when (kind) {
                 SkyKind.Dawn, SkyKind.Dusk -> scene.copy(sun = 0.8f, stars = 0.15f, clouds = 0.15f)

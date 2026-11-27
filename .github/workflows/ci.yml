@@ -3,6 +3,11 @@ name: CI
 on:
   pull_request:
   workflow_dispatch:
+    inputs:
+      show:
+        description: Snapshots for the smoke test to print in its log as base64 JPEGs (names separated by spaces, e.g. "20-sky-rain"), for reading a screen without downloading the artifact
+        required: false
+        default: ""
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -101,6 +106,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         env:
           GH_TOKEN: ${{ github.token }}
+          SMOKE_SHOW: ${{ inputs.show }}
         with:
           # API 34 images crash on the hosted runners' software GPU within a minute; API 31 is stable
           # and still covers prompt-free self-updates (Android 12+).

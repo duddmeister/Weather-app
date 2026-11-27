@@ -51,13 +51,17 @@ import kotlin.random.Random
 /**
  * The soft parts of the sky (colours, glows, clouds, fog), kept as two layers so that glass
  * surfaces can paint them again inside themselves. Everything sharp is drawn between and after
- * them, so rain, snow and stars pass behind the glass instead of showing through text.
+ * them, so falling rain, snow and stars pass behind the glass instead of showing through text.
+ * A third layer holds the rain that has landed on the screen, which glass wears on its surface.
  */
 @Stable
 class SkyBackdrop internal constructor(
     private val base: GraphicsLayer,
     private val veil: GraphicsLayer,
+    private val water: GraphicsLayer,
 ) {
+    private var dry = false
+
     /** Tint of the glass for the sky as it is right now. */
     var glass: Color by mutableStateOf(SkyScenes.Default.palette.card)
         internal set
@@ -66,6 +70,26 @@ class SkyBackdrop internal constructor(
     fun DrawScope.drawSoftSky() {
         drawLayer(base)
         drawLayer(veil)
+    }
+
+    /**
+     * Paints the rain that's on the glass of the screen: glass surfaces draw it over themselves and
+     * under their content, so drops run across a card without ever crossing its text.
+     */
+    fun DrawScope.drawWater() {
+        drawLayer(water)
+    }
+
+    /** Records the water on the screen and draws it; when it isn't raining the layer is simply emptied. */
+    internal fun DrawScope.recordWater(density: Density, wet: Boolean, block: DrawScope.() -> Unit) {
+        if (wet) {
+            water.record(density, layoutDirection, size.toIntSize(), block)
+            dry = false
+            drawLayer(water)
+        } else if (!dry) {
+            water.record(density, layoutDirection, size.toIntSize()) { }
+            dry = true
+        }
     }
 
     // Recorded through the layer itself with a plain Density: inside DrawScope's own record(), the
@@ -85,7 +109,8 @@ class SkyBackdrop internal constructor(
 fun rememberSkyBackdrop(): SkyBackdrop {
     val base = rememberGraphicsLayer()
     val veil = rememberGraphicsLayer()
-    return remember(base, veil) { SkyBackdrop(base, veil) }
+    val water = rememberGraphicsLayer()
+    return remember(base, veil, water) { SkyBackdrop(base, veil, water) }
 }
 
 /** The sky behind the content, if there is one (there isn't in dialogs or the widget picker). */
@@ -143,6 +168,7 @@ fun SkyBackground(
             .fillMaxSize()
             .drawWithCache {
                 val art = SkyArt(this, size)
+                val drops = DropArt(this)
                 val plainDensity = Density(density, fontScale)
                 onDrawBehind {
                     val t = animator.time.floatValue
@@ -177,6 +203,12 @@ fun SkyBackground(
                     if (look.rain > 0.01f) drawRain(field, t, look.rain, look.windTilt)
                     if (look.snow > 0.01f) drawSnow(field, art, t, look.snow)
                     if (look.lightning > 0.5f) drawLightningBolt(t, look.lightning)
+                    // Last, what's on the glass of the screen itself.
+                    with(backdrop) {
+                        recordWater(plainDensity, wet = look.rain > 0.01f) {
+                            drawGlassRain(drops, t, look.rain, look.windTilt, splashes = animate)
+                        }
+                    }
                 }
             },
     )

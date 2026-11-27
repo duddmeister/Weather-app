@@ -25,6 +25,28 @@ class GlassRainTest {
     }
 
     @Test
+    fun theTrackDriesSteadilyBehindTheDrop() {
+        // Nothing to leave a track before the drop lets go, and it grows from where the drop started.
+        assertEquals(0f, GlassRainMotion.track(0f), 0f)
+        assertEquals(GlassRainMotion.slide(0.5f), GlassRainMotion.track(0.5f), 1e-5f)
+        var shortest = Float.MAX_VALUE
+        var longest = 0f
+        var seconds = GlassRainMotion.TRACK
+        while (seconds < 12f) {
+            val length = GlassRainMotion.track(seconds)
+            // The dry end never overtakes the drop, and never goes back up either.
+            assertTrue("no track at $seconds s", length > 0f)
+            assertTrue(GlassRainMotion.slide(seconds - GlassRainMotion.TRACK) >= GlassRainMotion.slide(seconds - GlassRainMotion.TRACK - 0.01f))
+            shortest = minOf(shortest, length)
+            longest = maxOf(longest, length)
+            seconds += 0.01f
+        }
+        // Short while the drop sticks, long when it darts: that's what makes it look left behind.
+        assertTrue("shortest $shortest", shortest < GlassRainMotion.TRACK * 0.6f)
+        assertTrue("longest $longest", longest > GlassRainMotion.TRACK * 1.4f)
+    }
+
+    @Test
     fun aDropLandsSitsAndDriesAway() {
         val life = 10f
         assertEquals(0f, GlassRainMotion.presence(-0.1f, life), 0f)

@@ -64,6 +64,16 @@ internal object GlassRainMotion {
     private const val STICK = 0.85f
     private const val SLIP_RATE = 2.6f
 
+    /** Seconds the wet track behind a running drop takes to dry. */
+    const val TRACK = 1.1f
+
+    /**
+     * How long the track behind a drop is, in seconds' worth of its average speed, [seconds] after
+     * it let go. The track dries from its far end at a steady pace whatever the drop is doing, so
+     * it shortens while the drop sticks and is drawn out when it darts.
+     */
+    fun track(seconds: Float): Float = slide(seconds) - slide(seconds - TRACK)
+
     /** A repeatable random number in 0..1 for the [slot]-th property of drop [index] in its [cycle]-th life. */
     fun chance(index: Int, cycle: Int, slot: Int): Float {
         var h = index * 374_761_393 + cycle * 668_265_263 + slot * 1_274_126_177
@@ -185,7 +195,7 @@ internal fun DrawScope.drawGlassRain(art: DropArt, t: Float, amount: Float, tilt
 
         if (fallen > radius) {
             // The track it has left: narrower than the drop, and drying to nothing behind it.
-            val length = minOf(speed * 1.2f, size.height * 0.36f, fallen)
+            val length = minOf(speed * GlassRainMotion.track(running), size.height * 0.36f)
             val top = fallen - length
             // Once the drop has run off the bottom, its track follows it out.
             if (startY + top > size.height) continue

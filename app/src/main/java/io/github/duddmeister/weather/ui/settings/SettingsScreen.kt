@@ -225,7 +225,7 @@ fun SettingsScreen(
             }
             item(key = "appearance") {
                 Section(Icons.Rounded.Palette, "Appearance") {
-                    ToggleRow("Animated sky", "Rain, snow, stars and clouds move behind the forecast.", settings.animatedBackground) { on ->
+                    ToggleRow("Animated sky", "Clouds, stars and snow move behind the forecast, and rain runs down the screen.", settings.animatedBackground) { on ->
                         onChange { it.copy(animatedBackground = on) }
                     }
                     RowDivider()

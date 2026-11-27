@@ -13,7 +13,10 @@ in-app updates.
   with a sun whose rays turn slowly, a moon in its actual phase, stars, drifting clouds, fog,
   lightning, snow, and rain angled by the real wind. Swipe to another place and the sky blends into
   that place's weather under your finger. Cards are frosted glass: clouds and glows carry on behind
-  them, rain and snow don't.
+  them, falling rain and snow don't.
+- **Rain on the glass.** When it rains, drops land on the screen with a splash, sit as beads and
+  dry away; heavier ones let go and run down in fits and starts, leaving a wet track. They cross
+  the cards too, underneath the text, and there are more of them the harder it rains.
 - **Home screen widgets with a refresh button.** Current weather, a forecast (current + hourly +
   daily), and two clocks with the weather. They resize, show the time they were updated (or
   "Offline"), animate their own little skies, and have a ↻ button that fetches fresh data on the

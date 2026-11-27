@@ -88,6 +88,8 @@ fun Modifier.glass(shape: Shape = CardShape, tint: Color = Color.Unspecified, ou
                 }
                 if (tint.isSpecified) drawRect(tint)
                 drawRect(sheen)
+                // Rain on the screen runs across the glass too, beneath whatever the glass holds.
+                if (backdrop != null) translate(-position.x, -position.y) { with(backdrop) { drawWater() } }
                 drawContent()
                 if (outlined) drawOutline(outline, edge, style = stroke)
             }
@@ -121,7 +123,13 @@ fun Modifier.skyVeil(fade: Dp, strength: () -> Float): Modifier {
                 1f to Color.Transparent,
             )
             onDrawBehind {
-                translate(-position.x, -position.y) { with(backdrop) { drawSoftSky() } }
+                translate(-position.x, -position.y) {
+                    with(backdrop) {
+                        drawSoftSky()
+                        // Rain on the screen stays on the screen, whatever scrolls away beneath it.
+                        drawWater()
+                    }
+                }
                 drawRect(mask, blendMode = BlendMode.DstIn)
             }
         }

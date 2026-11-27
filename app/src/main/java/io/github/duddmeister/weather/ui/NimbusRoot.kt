@@ -52,6 +52,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import io.github.duddmeister.weather.domain.Astronomy
 import io.github.duddmeister.weather.domain.conditionsAt
 import io.github.duddmeister.weather.ui.components.RevealState
 import io.github.duddmeister.weather.ui.components.newRevealState
@@ -60,9 +61,12 @@ import io.github.duddmeister.weather.ui.home.blend
 import io.github.duddmeister.weather.ui.home.scrolledPixels
 import io.github.duddmeister.weather.ui.places.PlacesScreen
 import io.github.duddmeister.weather.ui.settings.SettingsScreen
+import io.github.duddmeister.weather.ui.skies.SkiesScreen
 import io.github.duddmeister.weather.ui.sky.LocalSkyBackdrop
 import io.github.duddmeister.weather.ui.sky.SkyBackground
 import io.github.duddmeister.weather.ui.sky.SkyLook
+import io.github.duddmeister.weather.ui.sky.SkySample
+import io.github.duddmeister.weather.ui.sky.SkySamples
 import io.github.duddmeister.weather.ui.sky.SkyScenes
 import io.github.duddmeister.weather.ui.sky.lerp
 import io.github.duddmeister.weather.ui.sky.look
@@ -73,7 +77,21 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 
-enum class Screen { Home, Places, Settings }
+/**
+ * The app's screens. Back goes to a screen's [parent]; behind a screen full of text the sky is
+ * [calm]: dimmed, with nothing falling through it.
+ */
+enum class Screen(val parent: Screen?, val calm: Boolean) {
+    Home(parent = null, calm = false),
+    Places(parent = Home, calm = true),
+    Settings(parent = Home, calm = true),
+
+    /** The gallery of skies, opened from Settings. */
+    Skies(parent = Settings, calm = false);
+
+    /** How many screens deep this one is: going deeper slides in, coming back falls away. */
+    val depth: Int get() = if (parent == null) 0 else parent.depth + 1
+}
 
 /** Something the app was opened for: a widget tap (location) or an update notification. */
 data class LaunchRequest(
@@ -82,6 +100,8 @@ data class LaunchRequest(
     val installUpdate: Boolean = false,
     /** Opened from a launcher shortcut. */
     val screen: Screen? = null,
+    /** Which sky the gallery should open on, by its id. */
+    val sky: String? = null,
 )
 
 @Composable
@@ -106,6 +126,9 @@ fun NimbusRoot(vm: MainViewModel, launchRequest: LaunchRequest?, onLaunchRequest
         }
     }
     val pagerState = rememberPagerState(pageCount = { state.pages.size })
+    // The gallery's skies, with the moon as it is tonight.
+    val skies = remember { SkySamples.all(moonPhase = Astronomy.moon(System.currentTimeMillis()).phase.toFloat()) }
+    val skiesPager = rememberPagerState(pageCount = { skies.size })
     val listStates = remember { mutableMapOf<String, LazyListState>() }
     val listStateFor: (String) -> LazyListState = { id -> listStates.getOrPut(id) { LazyListState() } }
 
@@ -153,6 +176,10 @@ fun NimbusRoot(vm: MainViewModel, launchRequest: LaunchRequest?, onLaunchRequest
             placesFromOnboarding = target == Screen.Places
             screen = target
         }
+        request.sky?.let { id ->
+            val index = skies.indexOfFirst { it.id == id }
+            if (index >= 0) skiesPager.requestScrollToPage(index)
+        }
         onLaunchRequestHandled()
     }
     LaunchedEffect(pendingLocationId, state.pages, screen) {
@@ -176,7 +203,9 @@ fun NimbusRoot(vm: MainViewModel, launchRequest: LaunchRequest?, onLaunchRequest
         nowMillis = nowMillis,
         screen = screen,
         animateSky = state.settings.animatedBackground && !reduceMotion,
-        onBack = { screen = Screen.Home },
+        onBack = { screen = screen.parent ?: Screen.Home },
+        skies = skies,
+        skiesPager = skiesPager,
     ) { target, revealStateFor ->
         when (target) {
             Screen.Home -> HomeScreen(
@@ -250,6 +279,13 @@ fun NimbusRoot(vm: MainViewModel, launchRequest: LaunchRequest?, onLaunchRequest
                 onCheckForUpdates = vm::checkForUpdates,
                 onOpenUpdate = { showUpdate = true },
                 onMetOfficeKey = vm::setMetOfficeKey,
+                onOpenSkies = { screen = Screen.Skies },
+            )
+            Screen.Skies -> SkiesScreen(
+                samples = skies,
+                pagerState = skiesPager,
+                moving = state.settings.animatedBackground && !reduceMotion,
+                onBack = { screen = Screen.Settings },
             )
         }
     }
@@ -276,8 +312,9 @@ fun NimbusRoot(vm: MainViewModel, launchRequest: LaunchRequest?, onLaunchRequest
 /**
  * The sky, and on top of it whichever screen is showing. The sky is one for the whole app: it
  * blends towards the next place as you swipe to it, rises a little as the forecast scrolls, and
- * calms down behind Places and Settings. Screens arrive from the side and leave by shrinking away;
- * a back swipe drags that transition with the finger.
+ * calms down behind Places and Settings. In the gallery it shows whichever of [skies] is on
+ * [skiesPager]'s page instead. Screens arrive from the side and leave by shrinking away; a back
+ * swipe drags that transition with the finger.
  *
  * [content] also gets where to keep each place's entrance animations, so they play once rather
  * than every time the forecast comes back from another screen.
@@ -291,9 +328,11 @@ fun NimbusStage(
     screen: Screen,
     animateSky: Boolean,
     onBack: () -> Unit,
+    skies: List<SkySample> = emptyList(),
+    skiesPager: PagerState? = null,
     content: @Composable (Screen, (String) -> RevealState) -> Unit,
 ) {
-    val calm = screen != Screen.Home
+    val calm = screen.calm
     val looks = remember(pages, nowMillis, calm) {
         pages.map { page ->
             val snapshot = page.snapshot
@@ -304,20 +343,26 @@ fun NimbusStage(
     val currentLooks by rememberUpdatedState(looks)
     val currentFallback by rememberUpdatedState(fallback)
     val currentPages by rememberUpdatedState(pages)
-    val target: () -> SkyLook = remember(pagerState) {
+    val currentSkies by rememberUpdatedState(skies)
+    val inGallery by rememberUpdatedState(screen == Screen.Skies && skiesPager != null)
+    val target: () -> SkyLook = remember(pagerState, skiesPager) {
         {
-            val page = pagerState.currentPage
-            val offset = pagerState.currentPageOffsetFraction
-            val here = currentLooks.getOrNull(page) ?: currentFallback
-            val there = currentLooks.getOrNull(if (offset > 0f) page + 1 else page - 1)
-            if (there == null || abs(offset) < 0.001f) here else lerp(here, there, abs(offset))
+            if (inGallery && skiesPager != null) {
+                skiesPager.look(currentFallback) { currentSkies.getOrNull(it)?.look }
+            } else {
+                pagerState.look(currentFallback) { currentLooks.getOrNull(it) }
+            }
         }
     }
     val maxLift = with(LocalDensity.current) { 480.dp.toPx() }
     val lift: () -> Float = remember(pagerState, maxLift) {
         {
-            pagerState.blend { index ->
-                currentPages.getOrNull(index)?.let { listStateFor(it.location.id).scrolledPixels().coerceAtMost(maxLift) }
+            if (inGallery) {
+                0f
+            } else {
+                pagerState.blend { index ->
+                    currentPages.getOrNull(index)?.let { listStateFor(it.location.id).scrolledPixels().coerceAtMost(maxLift) }
+                }
             }
         }
     }
@@ -329,9 +374,10 @@ fun NimbusStage(
     val backdrop = rememberSkyBackdrop()
     val screens = rememberSaveableStateHolder()
 
-    // Navigation that can be scrubbed: a back swipe seeks towards Home, letting go finishes the
-    // move and cancelling runs it back.
+    // Navigation that can be scrubbed: a back swipe seeks towards the screen before, letting go
+    // finishes the move and cancelling runs it back.
     val navigation = remember { SeekableTransitionState(screen) }
+    val before = screen.parent ?: Screen.Home
     var swipingBack by remember { mutableStateOf(false) }
     var backProgress by remember { mutableFloatStateOf(0f) }
     PredictiveBackHandler(enabled = screen != Screen.Home) { progress ->
@@ -352,14 +398,14 @@ fun NimbusStage(
     }
     LaunchedEffect(swipingBack, backProgress) {
         // The swipe only previews the way back; the rest plays out on release.
-        if (swipingBack) navigation.seekTo(backProgress.coerceIn(0f, 1f) * BACK_PREVIEW, targetState = Screen.Home)
+        if (swipingBack) navigation.seekTo(backProgress.coerceIn(0f, 1f) * BACK_PREVIEW, targetState = before)
     }
 
     CompositionLocalProvider(LocalSkyBackdrop provides backdrop) {
         Box(Modifier.fillMaxSize().background(Color(0xFF0B1530))) {
             SkyBackground(target = target, backdrop = backdrop, animate = animateSky, calm = calm, lift = lift)
             rememberTransition(navigation, label = "screen").AnimatedContent(
-                transitionSpec = { screenTransition(forward = targetState != Screen.Home) },
+                transitionSpec = { screenTransition(forward = targetState.depth > initialState.depth) },
                 modifier = Modifier.fillMaxSize(),
             ) { shown ->
                 // What a screen remembers (which hour is open, how far a chart has scrolled) survives a
@@ -368,6 +414,14 @@ fun NimbusStage(
             }
         }
     }
+}
+
+/** The look a pager of skies is on: its page's, blended with the next page's while a swipe is under way. */
+private inline fun PagerState.look(fallback: SkyLook, lookOf: (Int) -> SkyLook?): SkyLook {
+    val offset = currentPageOffsetFraction
+    val here = lookOf(currentPage) ?: fallback
+    val there = lookOf(if (offset > 0f) currentPage + 1 else currentPage - 1)
+    return if (there == null || abs(offset) < 0.001f) here else lerp(here, there, abs(offset))
 }
 
 /** How far through the transition a full back swipe takes it. */

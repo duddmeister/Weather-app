@@ -19,6 +19,7 @@ adb_() { timeout 60 adb "$@"; }
 
 update_status=0
 widget_status=0
+sky_status=0
 
 # Collects logs, checks for crashes, writes thumbnails and exits.
 finish() {
@@ -51,6 +52,27 @@ for name in sorted(os.listdir(out)):
         image.thumbnail((432, 960))
         image.save(os.path.join(out, "thumbs", name[:-4] + ".jpg"), quality=70)
 PY
+
+  # For reading a screen straight from the log, where the artifact can't be downloaded: SMOKE_SHOW
+  # names the snapshots to print, each as a base64 JPEG on a line of its own.
+  if [ -n "${SMOKE_SHOW:-}" ]; then
+    # shellcheck disable=SC2086
+    python3 - "$OUT" $SMOKE_SHOW <<'PY' || true
+import base64, io, sys
+from PIL import Image
+out, names = sys.argv[1], sys.argv[2:]
+for name in names:
+    try:
+        image = Image.open(f"{out}/{name}.png").convert("RGB")
+    except OSError as e:
+        print(f"::warning::Can't show {name}: {e}")
+        continue
+    image.thumbnail((720, 1600))
+    data = io.BytesIO()
+    image.save(data, "JPEG", quality=82)
+    print(f"SMOKE-IMAGE {name} {base64.b64encode(data.getvalue()).decode()}")
+PY
+  fi
   exit "$status"
 }
 
@@ -64,13 +86,21 @@ check_emulator() {
   echo "Emulator alive: $1"
 }
 
-# launch <package> [action]
+# launch <package> [action] [more `am start` arguments…]
 launch() {
-  if [ -n "${2:-}" ]; then
-    adb_ shell am start -W -n "$1/$PKG.MainActivity" -a "$PKG.action.$2" > /dev/null
+  local package="$1" action="${2:-}"
+  shift
+  [ $# -gt 0 ] && shift
+  if [ -n "$action" ]; then
+    adb_ shell am start -W -n "$package/$PKG.MainActivity" -a "$PKG.action.$action" "$@" > /dev/null
   else
-    adb_ shell am start -W -n "$1/$PKG.MainActivity" > /dev/null
+    adb_ shell am start -W -n "$package/$PKG.MainActivity" > /dev/null
   fi
+}
+
+# open_sky <package> <sky>: opens the gallery of skies (Settings → Skies) on one of them.
+open_sky() {
+  launch "$1" OPEN_SKIES --es "$PKG.extra.SKY" "$2"
 }
 
 swipe_up() {
@@ -151,6 +181,49 @@ if changed < 0.001:
 PY
 }
 
+# check_water <snapshot>: the rain sky must have drops on the glass. Counts the glints the drops
+# carry in the part of the screen that is nothing but sky (rain in the air is never that bright).
+check_water() {
+  python3 - "$OUT/$1.png" <<'PY'
+import sys
+from PIL import Image
+try:
+    image = Image.open(sys.argv[1]).convert("RGB")
+except OSError as e:
+    print(f"::error::There's no snapshot of the rain sky to check: {e}")
+    sys.exit(1)
+width, height = image.size
+top = int(height * 0.15)
+band = image.crop((0, top, width, int(height * 0.60)))
+data = band.tobytes()
+bright = set()
+for i in range(0, len(data), 3):
+    if data[i] >= 215 and data[i + 1] >= 215 and data[i + 2] >= 215:
+        bright.add(((i // 3) % width, (i // 3) // width))
+# Touching pixels make one glint: a small round blob, where a streak of anything else would be long.
+glints, seen = 0, set()
+for start in bright:
+    if start in seen:
+        continue
+    seen.add(start)
+    stack, xs, ys = [start], [start[0]], [start[1]]
+    while stack:
+        x, y = stack.pop()
+        for near in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1), (x + 1, y + 1), (x - 1, y - 1), (x + 1, y - 1), (x - 1, y + 1)):
+            if near in bright and near not in seen:
+                seen.add(near)
+                stack.append(near)
+                xs.append(near[0])
+                ys.append(near[1])
+    if max(xs) - min(xs) < 16 and max(ys) - min(ys) < 16:
+        glints += 1
+print(f"Water on the glass in the rain sky: {glints} drops catching the light")
+if glints == 0:
+    print("::error::The rain sky has no drops on the glass")
+    sys.exit(1)
+PY
+}
+
 # walk <package> [snapshots]: opens each screen in turn, optionally capturing it.
 walk() {
   local package="$1" capture="${2:-}"
@@ -193,6 +266,16 @@ walk() {
   if [ -n "$capture" ]; then snap 12-places 3; else sleep 3; fi
   adb_ shell input text "Paris"
   if [ -n "$capture" ]; then snap 13-search 5; else sleep 5; fi
+  adb_ shell input keyevent KEYCODE_BACK
+  adb_ shell input keyevent KEYCODE_BACK
+  sleep 1
+
+  # The gallery of skies, opened on the rain so that this build draws the water on the glass too
+  # (the forecast only would on a wet day in New York), then swiped on to the thunderstorm.
+  open_sky "$package" rain
+  if [ -n "$capture" ]; then snap 13-skies-rain 3; else sleep 3; fi
+  adb_ shell input swipe 900 1300 180 1300 250
+  if [ -n "$capture" ]; then snap 13-skies-storm 2; else sleep 2; fi
   adb_ shell input keyevent KEYCODE_BACK
   adb_ shell input keyevent KEYCODE_BACK
   sleep 1
@@ -312,12 +395,30 @@ elif ! grep -q "Nimbus/WeatherRepository: Updated" "$OUT/logcat-widgets.txt"; th
 fi
 echo "::endgroup::"
 
+# The skies with their weather moving: the gallery again with animations on, two frames of each sky
+# a moment apart. The rain must have left water on the glass.
+echo "::group::Skies in motion"
+adb_ shell settings put global animator_duration_scale 1
+adb_ logcat -c
+adb_ shell am force-stop "$DEBUG_PKG" # so that the app sees animations are back on
+for sky in rain storm snow night; do
+  open_sky "$DEBUG_PKG" "$sky"
+  snap "20-sky-$sky" 5
+  snap "20-sky-$sky-b" 0.4
+  compare_frames "20-sky-$sky" "20-sky-$sky-b" "$sky sky"
+done
+adb_ shell settings put global animator_duration_scale 0
+check_emulator "skies in motion"
+adb_ logcat -d > "$OUT/logcat-skies.txt"
+check_water 20-sky-rain || sky_status=1
+echo "::endgroup::"
+
 echo "::group::In-app update to the latest release"
 update_to_latest_release
 update_status=$?
 echo "::endgroup::"
 
-status=$((update_status || widget_status))
+status=$((update_status || widget_status || sky_status))
 if ! grep -q "Nimbus/WeatherRepository: Updated" "$OUT/logcat-release.txt"; then
   echo "::error::The release build never loaded a forecast"
   status=1

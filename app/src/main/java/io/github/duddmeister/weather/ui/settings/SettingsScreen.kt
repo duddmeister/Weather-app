@@ -28,6 +28,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.Info
@@ -114,6 +115,7 @@ fun SettingsScreen(
     onCheckForUpdates: () -> Unit,
     onOpenUpdate: () -> Unit,
     onMetOfficeKey: (String?) -> Unit,
+    onOpenSkies: () -> Unit,
 ) {
     val uri = LocalUriHandler.current
     val use24h = rememberUse24h(settings)
@@ -228,6 +230,20 @@ fun SettingsScreen(
                     ToggleRow("Animated sky", "Clouds, stars and snow move behind the forecast, and rain runs down the screen.", settings.animatedBackground) { on ->
                         onChange { it.copy(animatedBackground = on) }
                     }
+                    RowDivider()
+                    SettingRow(
+                        title = "Skies",
+                        subtitle = "See every sky Nimbus can show, rain on the glass included, whatever the weather is doing.",
+                        modifier = Modifier.clickable(onClickLabel = "Open", role = Role.Button, onClick = onOpenSkies),
+                        trailing = {
+                            Icon(
+                                Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = SkyText.Tertiary,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        },
+                    )
                     RowDivider()
                     ToggleRow(
                         "Animated widgets",
